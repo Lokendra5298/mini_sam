@@ -1,0 +1,101 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f4f7fb;
+  color: #1f2937;
+  line-height: 1.6;
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+.hero {
+  background: linear-gradient(135deg, #111827, #1d4ed8);
+  color: white;
+  border-radius: 28px;
+  padding: 56px;
+  margin-bottom: 28px;
+}
+
+.tag {
+  color: #bfdbfe;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+h1 {
+  font-size: 48px;
+  line-height: 1.1;
+  margin: 0 0 20px;
+}
+
+.subtitle {
+  font-size: 20px;
+  max-width: 850px;
+  color: #e5e7eb;
+}
+
+.buttons {
+  margin-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.buttons a {
+  background: white;
+  color: #1d4ed8;
+  padding: 12px 18px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.card {
+  background: white;
+  border-radius: 22px;
+  padding: 34px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  margin-bottom: 28px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.box {
+  background: white;
+  border-radius: 22px;
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.box h3 {
+  margin-top: 0;
+  color: #1d4ed8;
+}
+
+@media (max-width: 700px) {
+  .hero {
+    padding: 32px;
+  }
+
+  h1 {
+    font-size: 34px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

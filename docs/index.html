@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MiniSAM From Scratch</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <p class="tag">MiniSAM • Segment Anything From Scratch</p>
+      <h1>MiniSAM: A Small SAM-Style Model Built From Scratch</h1>
+      <p class="subtitle">
+        This project implements a small promptable segmentation model inspired by SAM,
+        including an image encoder, prompt encoder, two-way mask decoder, focal loss,
+        dice loss, and IoU prediction loss.
+      </p>
+
+      <div class="buttons">
+        <a href="architecture.html">View Architecture</a>
+        <a href="training.html">Training Details</a>
+        <a href="results.html">Results</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Project Goal</h2>
+      <p>
+        The goal is to understand how SAM works internally by implementing a simplified
+        version step by step. Instead of using a pretrained SAM checkpoint, this project
+        builds the main components from scratch and tests every module using random
+        tensors before training on a real segmentation dataset.
+      </p>
+    </section>
+
+    <section class="grid">
+      <div class="box">
+        <h3>1. Image Encoder</h3>
+        <p>Converts the input image into dense visual tokens using a ViT-style patch encoder.</p>
+      </div>
+      <div class="box">
+        <h3>2. Prompt Encoder</h3>
+        <p>Converts point, box, and mask prompts into sparse and dense prompt embeddings.</p>
+      </div>
+      <div class="box">
+        <h3>3. Mask Decoder</h3>
+        <p>Uses two-way attention to connect prompt tokens with image tokens and produce masks.</p>
+      </div>
+      <div class="box">
+        <h3>4. Losses</h3>
+        <p>Uses focal loss, dice loss, and IoU prediction loss for training.</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
