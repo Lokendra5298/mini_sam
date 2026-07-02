@@ -99,3 +99,11 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+.result-img {
+  width: 100%;
+  max-width: 1000px;
+  display: block;
+  margin: 24px auto;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
