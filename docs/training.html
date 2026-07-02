@@ -505,6 +505,259 @@ total_loss = selected_mask_loss + iou_loss</code></pre>
     </section>
 
     <section class="card">
+      <h2>Old Loss vs Corrected SAM-Style Loss</h2>
+
+      <p>
+        During the first training attempt, the loss was averaged over all predicted
+        mask candidates. This created a problem: even if one candidate mask was very
+        good, the other weaker candidate masks still increased the validation loss.
+      </p>
+
+      <h3>First Attempt: Average Loss Over All Masks</h3>
+
+      <p>
+        The first version used:
+      </p>
+
+      <div class="formula">
+        \[
+        \mathcal{L}_{avg}
+        =
+        \frac{1}{M}
+        \sum_{j=1}^{M}
+        \mathcal{L}_{mask}^{(j)}
+        \]
+      </div>
+
+      <p>
+        where \(M\) is the number of predicted mask candidates. In MiniSAM,
+        \(M = 3\).
+      </p>
+
+      <pre><code>total_focal = 0.0
+    total_dice = 0.0
+
+    for i in range(num_masks):
+        mask_i = pred_masks[:, i:i + 1]
+        total_focal += focal_loss(mask_i, gt_masks)
+        total_dice += dice_loss(mask_i, gt_masks)
+
+    total_loss = total_focal / num_masks + total_dice / num_masks</code></pre>
+
+      <p>
+        This made training unstable because the model was punished for all mask
+        candidates, even when one candidate already matched the object well.
+      </p>
+
+      <h3>Observed Problem</h3>
+
+      <p>
+        In the first 120-epoch run, the training loss kept decreasing, but the
+        validation loss increased strongly after the early epochs. This indicated
+        overfitting and also showed that averaging over all mask candidates was not
+        ideal for a SAM-style decoder.
+      </p>
+
+      <div class="mini-diagram">
+        <div>Good mask candidate</div>
+        <span>+</span>
+        <div>Bad extra candidates</div>
+        <span>→</span>
+        <div>High averaged validation loss</div>
+      </div>
+
+      <h3>Corrected Approach: Best-Mask Training</h3>
+
+      <p>
+        The corrected version follows a SAM-style idea. For each image, MiniSAM first
+        computes the loss for every candidate mask. Then it chooses the best mask
+        candidate and backpropagates the segmentation loss through that selected mask.
+      </p>
+
+      <div class="formula">
+        \[
+        j^*
+        =
+        \arg\min_j
+        \mathcal{L}_{mask}^{(j)}
+        \]
+      </div>
+
+      <div class="formula">
+        \[
+        \mathcal{L}
+        =
+        \mathcal{L}_{mask}^{(j^*)}
+        +
+        \mathcal{L}_{iou}
+        \]
+      </div>
+
+      <pre><code>all_mask_losses = torch.stack(all_mask_losses, dim=1)
+
+    best_idx = torch.argmin(
+        all_mask_losses.detach(),
+        dim=1,
+    )
+
+    selected_mask_loss = all_mask_losses[
+        batch_indices,
+        best_idx,
+    ].mean()
+
+    iou_loss = F.mse_loss(
+        pred_ious,
+        all_actual_ious.detach(),
+    )
+
+    total_loss = selected_mask_loss + iou_loss</code></pre>
+
+      <h3>Why This Is Better</h3>
+
+      <p>
+        A prompt can be ambiguous, so multiple mask candidates are useful. The model
+        should not be forced to make every candidate mask identical. Instead, one
+        candidate should match the target well, and the IoU head should learn which
+        candidate is best.
+      </p>
+
+      <table class="metric-table">
+        <tr>
+          <th>Training Version</th>
+          <th>Validation IoU</th>
+          <th>Validation Dice</th>
+          <th>Observation</th>
+        </tr>
+        <tr>
+          <td>Old averaged multi-mask loss</td>
+          <td>0.8677</td>
+          <td>0.9285</td>
+          <td>Validation loss increased strongly.</td>
+        </tr>
+        <tr>
+          <td>Corrected SAM-style best-mask loss</td>
+          <td>0.8949</td>
+          <td>0.9440</td>
+          <td>Better IoU and cleaner training behavior.</td>
+        </tr>
+      </table>
+
+      <p>
+        This was one of the most important lessons in the project: for a SAM-style
+        multi-mask decoder, the training objective should respect mask ambiguity.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Common Mistakes When Implementing SAM From Scratch</h2>
+
+      <p>
+        Building a SAM-style model from scratch is not only about writing the modules.
+        Many implementation details matter. Below are the main mistakes that can make
+        training unstable or confusing.
+      </p>
+
+      <table class="metric-table">
+        <tr>
+          <th>Mistake</th>
+          <th>Why It Is a Problem</th>
+          <th>Better Approach</th>
+        </tr>
+
+        <tr>
+          <td>Training only image → mask</td>
+          <td>
+            SAM is not a normal segmentation model. It is a prompt-conditioned model.
+          </td>
+          <td>
+            Train using image + prompt → mask.
+          </td>
+        </tr>
+
+        <tr>
+          <td>Forgetting coordinate normalization</td>
+          <td>
+            Point and box prompts are pixel coordinates, but the prompt encoder needs
+            normalized coordinates.
+          </td>
+          <td>
+            Convert coordinates to the range <code>[0, 1]</code> before positional encoding.
+          </td>
+        </tr>
+
+        <tr>
+          <td>Averaging loss over all mask candidates</td>
+          <td>
+            A good candidate mask can be punished because other candidate masks are weaker.
+          </td>
+          <td>
+            Use a SAM-style best-mask loss and train the IoU head to rank masks.
+          </td>
+        </tr>
+
+        <tr>
+          <td>Choosing checkpoint only by validation loss</td>
+          <td>
+            Segmentation quality may improve even when soft loss increases slightly.
+          </td>
+          <td>
+            Track both validation loss and validation IoU. Save <code>best_iou.pt</code>.
+          </td>
+        </tr>
+
+        <tr>
+          <td>Not testing each module separately</td>
+          <td>
+            Shape bugs become hard to debug once the full model is connected.
+          </td>
+          <td>
+            Test image encoder, prompt encoder, mask decoder, full model, and losses
+            using random tensors first.
+          </td>
+        </tr>
+
+        <tr>
+          <td>Ignoring tensor shapes</td>
+          <td>
+            SAM-style models use both sequence tokens and dense feature maps, so shape
+            errors are common.
+          </td>
+          <td>
+            Print and verify every important tensor shape during development.
+          </td>
+        </tr>
+      </table>
+
+      <h3>Most Important Lesson</h3>
+
+      <p>
+        The most important correction in this project was changing the loss from
+        average multi-mask loss to best-mask training. Since one prompt can have
+        multiple valid interpretations, a SAM-style decoder should be allowed to
+        produce multiple candidate masks.
+      </p>
+
+      <div class="formula">
+        \[
+        \text{Bad idea: force all masks to be equally good}
+        \]
+      </div>
+
+      <div class="formula">
+        \[
+        \text{Better idea: choose the best mask and train the IoU head to rank candidates}
+        \]
+      </div>
+
+      <pre><code># Bad: average every candidate mask loss
+    loss = mean(loss_mask_1, loss_mask_2, loss_mask_3)
+
+    # Better: select the best candidate mask
+    best_idx = argmin(mask_losses)
+    loss = mask_losses[best_idx] + iou_prediction_loss</code></pre>
+    </section>
+
+    <section class="card">
       <h2>Final Validation Result</h2>
 
       <table class="metric-table">
