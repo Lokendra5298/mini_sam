@@ -16,8 +16,7 @@ def get_device(device_id):
         return torch.device(f"cuda:{device_id}")
     return torch.device("cpu")
 
-
-def save_checkpoint(path, model, optimizer, epoch, best_val_loss):
+def save_checkpoint(path, model, optimizer, epoch, best_val_loss, best_val_iou=0.0):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -27,10 +26,10 @@ def save_checkpoint(path, model, optimizer, epoch, best_val_loss):
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict(),
             "best_val_loss": best_val_loss,
+            "best_val_iou": best_val_iou,
         },
         path,
     )
-
 
 @torch.no_grad()
 def validate(model, loader, criterion, device):
@@ -226,6 +225,7 @@ def main():
     )
 
     best_val_loss = float("inf")
+    best_val_iou = 0.0
 
     print("Train samples:", len(train_dataset))
     print("Val samples  :", len(val_dataset))
@@ -278,6 +278,18 @@ def main():
                 best_val_loss,
             )
             print(f"Saved best checkpoint: {best_ckpt}")
+        
+        if val_stats["mean_iou"] > best_val_iou:
+            best_val_iou = val_stats["mean_iou"]
+            best_iou_ckpt = Path(args.out_dir) / "best_iou.pt"
+            save_checkpoint(
+                best_iou_ckpt,
+                model,
+                optimizer,
+                epoch,
+                best_val_loss,
+            )
+            print(f"Saved best IoU checkpoint: {best_iou_ckpt}")
 
     print("Training complete.")
 

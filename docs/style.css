@@ -107,3 +107,50 @@ h1 {
   border-radius: 18px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
 }
+.pipeline,
+.mini-diagram {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.pipeline div,
+.mini-diagram div {
+  background: #eff6ff;
+  border: 2px solid #bfdbfe;
+  color: #1e40af;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-weight: 700;
+}
+
+.pipeline span,
+.mini-diagram span {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1d4ed8;
+}
+
+pre {
+  background: #111827;
+  color: #e5e7eb;
+  padding: 20px;
+  border-radius: 16px;
+  overflow-x: auto;
+  font-size: 15px;
+}
+
+code {
+  font-family: Consolas, Monaco, monospace;
+}
+
+h2 {
+  color: #111827;
+  margin-top: 0;
+}
+
+h3 {
+  color: #1d4ed8;
+}

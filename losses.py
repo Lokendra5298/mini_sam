@@ -3,16 +3,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def sigmoid_focal_loss(
+def sigmoid_focal_loss_per_sample(
     inputs,
     targets,
     alpha=0.25,
     gamma=2.0,
-    reduction="mean",
 ):
     """
     inputs:  [B, 1, H, W] logits
     targets: [B, 1, H, W] binary 0/1
+
+    returns: [B]
     """
 
     prob = inputs.sigmoid()
@@ -30,16 +31,12 @@ def sigmoid_focal_loss(
         alpha_t = alpha * targets + (1.0 - alpha) * (1.0 - targets)
         loss = alpha_t * loss
 
-    if reduction == "mean":
-        return loss.mean()
-
-    if reduction == "sum":
-        return loss.sum()
+    loss = loss.flatten(1).mean(dim=1)
 
     return loss
 
 
-def dice_loss(
+def dice_loss_per_sample(
     inputs,
     targets,
     eps=1e-6,
@@ -47,6 +44,8 @@ def dice_loss(
     """
     inputs:  [B, 1, H, W] logits
     targets: [B, 1, H, W] binary 0/1
+
+    returns: [B]
     """
 
     inputs = inputs.sigmoid()
@@ -59,7 +58,7 @@ def dice_loss(
 
     loss = 1.0 - (numerator + eps) / (denominator + eps)
 
-    return loss.mean()
+    return loss
 
 
 def mask_iou_from_logits(
@@ -72,7 +71,7 @@ def mask_iou_from_logits(
     inputs:  [B, 1, H, W] logits
     targets: [B, 1, H, W] binary 0/1
 
-    threshold=0.0 means sigmoid(logit) > 0.5.
+    returns: [B]
     """
 
     pred = (inputs > threshold).float()
@@ -113,56 +112,65 @@ class MiniSAMLoss(nn.Module):
         pred_ious:  [B, M]
         gt_masks:   [B, 1, H, W]
 
-        We choose the best mask among M predicted masks using Dice loss.
+        SAM-style behavior:
+        - compute loss for each predicted mask
+        - choose best mask per sample
+        - backprop only through selected best mask
+        - train IoU head to predict actual IoU for every mask
         """
 
         b, m, h, w = pred_masks.shape
-
         gt_masks = gt_masks.float()
 
-        total_focal = 0.0
-        total_dice = 0.0
-        dice_losses = []
+        all_mask_losses = []
+        all_focal_losses = []
+        all_dice_losses = []
+        all_actual_ious = []
 
         for i in range(m):
             mask_i = pred_masks[:, i:i + 1, :, :]
 
-            focal_i = sigmoid_focal_loss(mask_i, gt_masks)
-            dice_i = dice_loss(mask_i, gt_masks)
+            focal_i = sigmoid_focal_loss_per_sample(mask_i, gt_masks)
+            dice_i = dice_loss_per_sample(mask_i, gt_masks)
 
-            total_focal = total_focal + focal_i
-            total_dice = total_dice + dice_i
+            mask_loss_i = (
+                self.focal_weight * focal_i
+                + self.dice_weight * dice_i
+            )
 
-            dice_losses.append(dice_i.detach())
-
-        total_focal = total_focal / m
-        total_dice = total_dice / m
-
-        # For IoU prediction, match every predicted IoU to actual IoU of that mask.
-        actual_ious = []
-        for i in range(m):
-            mask_i = pred_masks[:, i:i + 1, :, :]
             actual_iou_i = mask_iou_from_logits(mask_i, gt_masks)
-            actual_ious.append(actual_iou_i)
 
-        actual_ious = torch.stack(actual_ious, dim=1).detach()
-        iou_loss = F.mse_loss(pred_ious, actual_ious)
+            all_mask_losses.append(mask_loss_i)
+            all_focal_losses.append(focal_i)
+            all_dice_losses.append(dice_i)
+            all_actual_ious.append(actual_iou_i)
 
-        total_loss = (
-            self.focal_weight * total_focal
-            + self.dice_weight * total_dice
-            + self.iou_weight * iou_loss
-        )
+        all_mask_losses = torch.stack(all_mask_losses, dim=1)
+        all_focal_losses = torch.stack(all_focal_losses, dim=1)
+        all_dice_losses = torch.stack(all_dice_losses, dim=1)
+        all_actual_ious = torch.stack(all_actual_ious, dim=1)
 
-        with torch.no_grad():
-            best_pred_idx = torch.argmax(actual_ious, dim=1)
-            mean_iou = actual_ious.max(dim=1).values.mean()
+        # Choose best mask per sample.
+        # Lower mask loss = better mask.
+        best_idx = torch.argmin(all_mask_losses.detach(), dim=1)
+
+        batch_indices = torch.arange(b, device=pred_masks.device)
+
+        selected_mask_loss = all_mask_losses[batch_indices, best_idx].mean()
+        selected_focal_loss = all_focal_losses[batch_indices, best_idx].mean()
+        selected_dice_loss = all_dice_losses[batch_indices, best_idx].mean()
+        selected_iou = all_actual_ious[batch_indices, best_idx].mean()
+
+        # Train IoU head for all masks.
+        iou_loss = F.mse_loss(pred_ious, all_actual_ious.detach())
+
+        total_loss = selected_mask_loss + self.iou_weight * iou_loss
 
         return {
             "loss": total_loss,
-            "focal_loss": total_focal.detach(),
-            "dice_loss": total_dice.detach(),
+            "focal_loss": selected_focal_loss.detach(),
+            "dice_loss": selected_dice_loss.detach(),
             "iou_loss": iou_loss.detach(),
-            "mean_iou": mean_iou.detach(),
-            "best_pred_idx": best_pred_idx.detach(),
+            "mean_iou": selected_iou.detach(),
+            "best_pred_idx": best_idx.detach(),
         }

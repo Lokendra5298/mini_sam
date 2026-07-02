@@ -7,14 +7,220 @@
 </head>
 <body>
   <main class="page">
+
     <section class="card">
       <h1>MiniSAM Architecture</h1>
       <p>
-        MiniSAM contains three main parts: a ViT-style image encoder, a prompt encoder,
-        and a SAM-style mask decoder with two-way attention.
+        MiniSAM is a small SAM-style promptable segmentation model built from scratch.
+        It follows the same high-level idea as Segment Anything: encode the image,
+        encode the prompt, and use a mask decoder to predict the requested object mask.
       </p>
+
+      <div class="pipeline">
+        <div>Input Image</div>
+        <span>→</span>
+        <div>Image Encoder</div>
+        <span>→</span>
+        <div>Image Embedding</div>
+        <span>+</span>
+        <div>Prompt Embedding</div>
+        <span>→</span>
+        <div>Mask Decoder</div>
+        <span>→</span>
+        <div>Final Mask</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>1. Image Encoder</h2>
+      <p>
+        The image encoder converts the input image into a dense feature map.
+        In MiniSAM, the input image is resized to 256 × 256 and divided into
+        16 × 16 patches.
+      </p>
+
+      <pre><code>Input image:       [B, 3, 256, 256]
+Patch embedding:   [B, 256, 16, 16]
+Flattened tokens:  [B, 256, C]
+Transformer blocks
+Output embedding:  [B, 256, 16, 16]</code></pre>
+
+      <p>
+        The image encoder uses ViT-style self-attention. This allows image patches
+        to exchange information and learn object shape, texture, and boundary cues.
+      </p>
+
+      <div class="mini-diagram">
+        <div>Image</div>
+        <span>→</span>
+        <div>Patch Embedding</div>
+        <span>→</span>
+        <div>Transformer Blocks</div>
+        <span>→</span>
+        <div>Image Feature Map</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. Prompt Encoder</h2>
+      <p>
+        The prompt encoder converts user prompts into embeddings. MiniSAM supports
+        point prompts, box prompts, and optional mask prompts.
+      </p>
+
+      <h3>Point Prompt</h3>
+      <pre><code>Point coordinate: [x, y]
+Point label:      positive or negative
+Output:           sparse prompt embedding</code></pre>
+
+      <h3>Box Prompt</h3>
+      <pre><code>Box: [x1, y1, x2, y2]
+Top-left corner embedding
+Bottom-right corner embedding
+Output: sparse prompt embedding</code></pre>
+
+      <h3>Mask Prompt</h3>
+      <pre><code>Previous mask: [B, 1, 256, 256]
+Small CNN downsampling
+Output: dense prompt embedding [B, 256, 16, 16]</code></pre>
+
+      <p>
+        For our Oxford Pet training, we generate a box prompt and one positive
+        point prompt from the ground-truth mask.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>3. Mask Decoder</h2>
+      <p>
+        The mask decoder is the most important part of MiniSAM. It decides which
+        pixels satisfy the prompt. It receives image embeddings, prompt embeddings,
+        learned mask tokens, and an IoU token.
+      </p>
+
+      <pre><code>Inputs:
+Image embedding:          [B, 256, 16, 16]
+Sparse prompt embedding:  [B, N, 256]
+Dense prompt embedding:   [B, 256, 16, 16]
+Mask tokens:              learned output tokens
+IoU token:                learned quality token</code></pre>
+
+      <div class="mini-diagram">
+        <div>Image Tokens</div>
+        <span>↔</span>
+        <div>Prompt Tokens</div>
+        <span>→</span>
+        <div>Mask Tokens</div>
+        <span>→</span>
+        <div>Pixel Classifier</div>
+        <span>→</span>
+        <div>Mask</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>4. Two-Way Attention</h2>
+      <p>
+        MiniSAM uses a two-way transformer inside the mask decoder. The key idea is
+        that prompt tokens attend to image tokens, and image tokens also attend back
+        to prompt tokens.
+      </p>
+
+      <pre><code>Step 1: Prompt tokens use self-attention
+Step 2: Prompt tokens attend to image tokens
+Step 3: Prompt tokens are updated by an MLP
+Step 4: Image tokens attend back to prompt tokens
+Step 5: Updated tokens are used for mask prediction</code></pre>
+
+      <p>
+        This is how the model connects the request from the prompt with the visual
+        information in the image.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>5. Hypernetwork Mask Head</h2>
+      <p>
+        After two-way attention, each mask token is converted into a small dynamic
+        classifier using an MLP. This classifier scores every pixel feature.
+      </p>
+
+      <pre><code>Mask token
+   ↓
+MLP hypernetwork
+   ↓
+Dynamic classifier vector
+   ↓
+Dot product with each pixel feature
+   ↓
+Mask logits</code></pre>
+
+      <p>
+        A pixel receives a high score when its feature matches the prompt-conditioned
+        mask token. After thresholding, high-score pixels become foreground.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>6. Loss Function</h2>
+      <p>
+        MiniSAM uses a SAM-style best-mask training objective. Since the decoder
+        predicts multiple candidate masks, we select the best candidate per sample
+        and train that mask strongly.
+      </p>
+
+      <pre><code>Total loss = selected mask loss + IoU prediction loss
+
+selected mask loss =
+    20 × focal loss
+    + 1 × dice loss
+
+IoU prediction loss =
+    MSE(predicted IoU, actual IoU)</code></pre>
+
+      <p>
+        The final model uses the corrected SAM-style loss. This fixed the earlier
+        validation-loss explosion caused by averaging loss across all mask candidates.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>7. Final Architecture Summary</h2>
+
+      <table class="metric-table">
+        <tr>
+          <th>Component</th>
+          <th>Role</th>
+        </tr>
+        <tr>
+          <td>Image Encoder</td>
+          <td>Converts image into visual feature map using ViT-style self-attention.</td>
+        </tr>
+        <tr>
+          <td>Prompt Encoder</td>
+          <td>Converts points, boxes, and masks into prompt embeddings.</td>
+        </tr>
+        <tr>
+          <td>Two-Way Transformer</td>
+          <td>Allows prompt tokens and image tokens to exchange information.</td>
+        </tr>
+        <tr>
+          <td>Mask Tokens</td>
+          <td>Represent candidate segmentation masks.</td>
+        </tr>
+        <tr>
+          <td>Hypernetwork Head</td>
+          <td>Turns each mask token into a dynamic pixel classifier.</td>
+        </tr>
+        <tr>
+          <td>IoU Head</td>
+          <td>Predicts mask quality and helps select the best mask.</td>
+        </tr>
+      </table>
+
       <p><a href="index.html">Back to home</a></p>
     </section>
+
   </main>
 </body>
 </html>
