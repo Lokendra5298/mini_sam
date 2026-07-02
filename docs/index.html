@@ -25,12 +25,72 @@
     </section>
 
     <section class="card">
-      <h2>Project Goal</h2>
+      <h2>Try It Yourself</h2>
+    
       <p>
-        The goal is to understand how SAM works internally by implementing a simplified
-        version step by step. Instead of using a pretrained SAM checkpoint, this project
-        builds the main components from scratch and tests every module using random
-        tensors before training on a real segmentation dataset.
+        The project is designed so that each component can be tested independently
+        before training the full model. This makes it easier to understand and debug
+        a SAM-style architecture from scratch.
+      </p>
+    
+      <h3>1. Clone the Repository</h3>
+    
+      <pre><code>git clone https://github.com/Lokendra5298/mini_sam.git
+    cd mini_sam</code></pre>
+    
+      <h3>2. Install Requirements</h3>
+    
+      <pre><code>pip install -r requirements.txt</code></pre>
+    
+      <h3>3. Download Dataset</h3>
+    
+      <pre><code>python scripts/download_oxford_pet.py</code></pre>
+    
+      <h3>4. Test Each Module</h3>
+    
+      <pre><code>export PYTHONPATH=$PWD
+    
+    python tests/test_random_image_encoder.py
+    python tests/test_random_prompt_encoder.py
+    python tests/test_random_mask_decoder.py
+    python tests/test_random_mini_sam.py
+    python tests/test_random_losses.py
+    python tests/test_dataset.py</code></pre>
+    
+      <h3>5. Train MiniSAM</h3>
+    
+      <pre><code>python train.py \
+      --data_root data/oxford_pet/processed \
+      --out_dir runs/minisam_oxford_pet_v2_sam_loss_ep50_bs32 \
+      --device_id 0 \
+      --epochs 50 \
+      --batch_size 32 \
+      --workers 8 \
+      --lr 1e-4</code></pre>
+    
+      <h3>6. Evaluate Final Checkpoint</h3>
+    
+      <pre><code>python scripts/evaluate.py \
+      --data_root data/oxford_pet/processed \
+      --split val \
+      --checkpoint runs/minisam_oxford_pet_v2_sam_loss_ep50_bs32/last.pt \
+      --device_id 0 \
+      --batch_size 32 \
+      --workers 8</code></pre>
+    
+      <h3>7. Visualize Predictions</h3>
+    
+      <pre><code>python scripts/visualize_predictions.py \
+      --data_root data/oxford_pet/processed \
+      --split val \
+      --checkpoint runs/minisam_oxford_pet_v2_sam_loss_ep50_bs32/last.pt \
+      --out_dir runs/minisam_oxford_pet_v2_sam_loss_ep50_bs32/visuals_final \
+      --device_id 0 \
+      --num_samples 32</code></pre>
+    
+      <p>
+        The recommended development order is: test random tensors first, then test
+        dataset loading, then train, evaluate, and finally visualize predictions.
       </p>
     </section>
 
