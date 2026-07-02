@@ -334,6 +334,98 @@ IoU prediction loss =
     </section>
 
     <section class="card">
+      <h2>MiniSAM vs Original SAM</h2>
+
+      <p>
+        MiniSAM is not a full reproduction of the original Segment Anything Model.
+        Instead, it is a small educational implementation that keeps the main architectural
+        ideas of SAM while making the model small enough to train from scratch on a
+        small dataset.
+      </p>
+
+      <table class="metric-table">
+        <tr>
+          <th>Component</th>
+          <th>Original SAM</th>
+          <th>MiniSAM</th>
+        </tr>
+
+        <tr>
+          <td>Goal</td>
+          <td>General-purpose promptable segmentation</td>
+          <td>Educational promptable segmentation from scratch</td>
+        </tr>
+
+        <tr>
+          <td>Image size</td>
+          <td>Large image resolution, commonly 1024 × 1024</td>
+          <td>256 × 256</td>
+        </tr>
+
+        <tr>
+          <td>Image encoder</td>
+          <td>Large ViT encoder such as ViT-B, ViT-L, or ViT-H</td>
+          <td>Small ViT-style encoder</td>
+        </tr>
+
+        <tr>
+          <td>Dataset scale</td>
+          <td>Very large-scale segmentation data</td>
+          <td>Oxford-IIIT Pet segmentation dataset</td>
+        </tr>
+
+        <tr>
+          <td>Prompt types</td>
+          <td>Point, box, and mask prompts</td>
+          <td>Point, box, and optional mask prompts</td>
+        </tr>
+
+        <tr>
+          <td>Mask decoder</td>
+          <td>Two-way transformer decoder</td>
+          <td>Small two-way transformer decoder</td>
+        </tr>
+
+        <tr>
+          <td>Mask outputs</td>
+          <td>Multiple candidate masks plus IoU scores</td>
+          <td>Three candidate masks plus IoU scores</td>
+        </tr>
+
+        <tr>
+          <td>Losses</td>
+          <td>Mask loss and IoU prediction loss</td>
+          <td>Focal loss, dice loss, and IoU prediction loss</td>
+        </tr>
+
+        <tr>
+          <td>Purpose</td>
+          <td>Strong zero-shot segmentation system</td>
+          <td>Learning how SAM works internally</td>
+        </tr>
+      </table>
+
+      <p>
+        The important point is that MiniSAM keeps the key mechanism:
+      </p>
+
+      <div class="formula">
+        \[
+        \text{Image Embedding}
+        +
+        \text{Prompt Embedding}
+        \rightarrow
+        \text{Prompt-Conditioned Mask}
+        \]
+      </div>
+
+      <p>
+        This makes MiniSAM useful for understanding how a promptable segmentation
+        model works, even though it is much smaller than the original SAM.
+      </p>
+    </section>
+
+    <section class="card">
       <h2>7. Final Architecture Summary</h2>
 
       <table class="metric-table">
