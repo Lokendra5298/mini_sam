@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>MiniSAM Training Details</title>
   <link rel="stylesheet" href="style.css">
 
@@ -21,7 +23,7 @@
       <a href="architecture.html">Architecture</a>
       <a class="active" href="training.html">Training Details</a>
       <a href="results.html">Results</a>
-      <a href="https://github.com/Lokendra5298/mini_sam" target="_blank">GitHub</a>
+      <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub</a>
     </div>
   </nav>
 
@@ -74,7 +76,7 @@
       </div>
 
       <p>
-        From the ground-truth mask, we generate:
+        From the ground-truth mask, MiniSAM generates:
       </p>
 
       <ul>
@@ -179,7 +181,7 @@ for block in self.blocks:
       <h3>Point Prompt Formula</h3>
 
       <p>
-        A point coordinate is first normalized to the range $[0,1]$:
+        A point coordinate is first normalized to the range <code>[0, 1]</code>:
       </p>
 
       <div class="formula">
@@ -316,7 +318,8 @@ Prompt tokens</code></pre>
       </div>
 
       <p>
-        Here, $T$ represents prompt/output tokens and $I$ represents image tokens.
+        Here, <code>T</code> represents prompt/output tokens and <code>I</code>
+        represents image tokens.
       </p>
 
       <pre><code># Token self-attention
@@ -349,7 +352,7 @@ image_tokens = image_tokens + self.image_to_token_attn(
       </div>
 
       <p>
-        The mask logit for pixel $i$ is computed by a dot product:
+        The mask logit for pixel <code>i</code> is computed by a dot product:
       </p>
 
       <div class="formula">
@@ -359,8 +362,8 @@ image_tokens = image_tokens + self.image_to_token_attn(
       </div>
 
       <p>
-        where $h_j$ is the classifier from mask token $j$ and $f_i$ is the upscaled
-        pixel feature.
+        where <code>h_j</code> is the classifier from mask token <code>j</code> and
+        <code>f_i</code> is the upscaled pixel feature.
       </p>
 
       <pre><code>mask_token = mask_tokens_out[:, i, :]
@@ -459,7 +462,7 @@ dice_loss = 1.0 - (numerator + eps) / (denominator + eps)</code></pre>
       <h3>Final SAM-Style Loss</h3>
 
       <p>
-        For each predicted mask $j$, MiniSAM computes:
+        For each predicted mask <code>j</code>, MiniSAM computes:
       </p>
 
       <div class="formula">
@@ -540,19 +543,19 @@ total_loss = selected_mask_loss + iou_loss</code></pre>
       </div>
 
       <p>
-        where \(M\) is the number of predicted mask candidates. In MiniSAM,
-        \(M = 3\).
+        where <code>M</code> is the number of predicted mask candidates. In MiniSAM,
+        <code>M = 3</code>.
       </p>
 
       <pre><code>total_focal = 0.0
-    total_dice = 0.0
+total_dice = 0.0
 
-    for i in range(num_masks):
-        mask_i = pred_masks[:, i:i + 1]
-        total_focal += focal_loss(mask_i, gt_masks)
-        total_dice += dice_loss(mask_i, gt_masks)
+for i in range(num_masks):
+    mask_i = pred_masks[:, i:i + 1]
+    total_focal += focal_loss(mask_i, gt_masks)
+    total_dice += dice_loss(mask_i, gt_masks)
 
-    total_loss = total_focal / num_masks + total_dice / num_masks</code></pre>
+total_loss = total_focal / num_masks + total_dice / num_masks</code></pre>
 
       <p>
         This made training unstable because the model was punished for all mask
@@ -605,22 +608,22 @@ total_loss = selected_mask_loss + iou_loss</code></pre>
 
       <pre><code>all_mask_losses = torch.stack(all_mask_losses, dim=1)
 
-    best_idx = torch.argmin(
-        all_mask_losses.detach(),
-        dim=1,
-    )
+best_idx = torch.argmin(
+    all_mask_losses.detach(),
+    dim=1,
+)
 
-    selected_mask_loss = all_mask_losses[
-        batch_indices,
-        best_idx,
-    ].mean()
+selected_mask_loss = all_mask_losses[
+    batch_indices,
+    best_idx,
+].mean()
 
-    iou_loss = F.mse_loss(
-        pred_ious,
-        all_actual_ious.detach(),
-    )
+iou_loss = F.mse_loss(
+    pred_ious,
+    all_actual_ious.detach(),
+)
 
-    total_loss = selected_mask_loss + iou_loss</code></pre>
+total_loss = selected_mask_loss + iou_loss</code></pre>
 
       <h3>Why This Is Better</h3>
 
@@ -760,11 +763,11 @@ total_loss = selected_mask_loss + iou_loss</code></pre>
       </div>
 
       <pre><code># Bad: average every candidate mask loss
-    loss = mean(loss_mask_1, loss_mask_2, loss_mask_3)
+loss = mean(loss_mask_1, loss_mask_2, loss_mask_3)
 
-    # Better: select the best candidate mask
-    best_idx = argmin(mask_losses)
-    loss = mask_losses[best_idx] + iou_prediction_loss</code></pre>
+# Better: select the best candidate mask
+best_idx = argmin(mask_losses)
+loss = mask_losses[best_idx] + iou_prediction_loss</code></pre>
     </section>
 
     <section class="card">
@@ -807,9 +810,27 @@ total_loss = selected_mask_loss + iou_loss</code></pre>
         candidate.
       </p>
 
-      <p><a href="index.html">Back to home</a></p>
+      <p>
+        <a href="index.html">Back to home</a>
+      </p>
     </section>
 
   </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <p>
+        <strong>MiniSAM From Scratch</strong> — an educational SAM-style promptable segmentation project.
+      </p>
+
+      <p>
+        Created by <strong>Lokendra Kumar</strong> |
+        <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub Repository</a> |
+        <a href="index.html">Home</a> |
+        <a href="architecture.html">Architecture</a> |
+        <a href="results.html">Results</a>
+      </p>
+    </div>
+  </footer>
 </body>
 </html>
