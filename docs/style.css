@@ -10,11 +10,60 @@ body {
   line-height: 1.6;
 }
 
+a {
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+a:hover {
+  color: #1e40af;
+}
+
 .page {
   max-width: 1100px;
   margin: 0 auto;
   padding: 48px 24px;
 }
+
+/* Navbar */
+
+.navbar {
+  max-width: 1100px;
+  margin: 24px auto 0;
+  padding: 0 24px;
+}
+
+.navbar-inner {
+  background: white;
+  border-radius: 999px;
+  padding: 12px 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.navbar a {
+  text-decoration: none;
+  color: #1f2937;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 999px;
+}
+
+.navbar a:hover {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.navbar a.active {
+  background: #1d4ed8;
+  color: white;
+}
+
+/* Hero */
 
 .hero {
   background: linear-gradient(135deg, #111827, #1d4ed8);
@@ -60,6 +109,13 @@ h1 {
   font-weight: 700;
 }
 
+.buttons a:hover {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/* Cards and layout */
+
 .card {
   background: white;
   border-radius: 22px;
@@ -72,6 +128,12 @@ h1 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 22px;
+  margin-bottom: 28px;
+}
+
+.card .grid {
+  margin-top: 22px;
+  margin-bottom: 0;
 }
 
 .box {
@@ -81,24 +143,30 @@ h1 {
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
 }
 
+.card .box {
+  background: #f8fafc;
+  box-shadow: none;
+  border: 1px solid #e5e7eb;
+}
+
 .box h3 {
   margin-top: 0;
   color: #1d4ed8;
 }
 
-@media (max-width: 700px) {
-  .hero {
-    padding: 32px;
-  }
+/* Headings */
 
-  h1 {
-    font-size: 34px;
-  }
-
-  .grid {
-    grid-template-columns: 1fr;
-  }
+h2 {
+  color: #111827;
+  margin-top: 0;
 }
+
+h3 {
+  color: #1d4ed8;
+}
+
+/* Images */
+
 .result-img {
   width: 100%;
   max-width: 1000px;
@@ -107,6 +175,9 @@ h1 {
   border-radius: 18px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
 }
+
+/* Diagrams */
+
 .pipeline,
 .mini-diagram {
   display: flex;
@@ -133,6 +204,8 @@ h1 {
   color: #1d4ed8;
 }
 
+/* Code blocks */
+
 pre {
   background: #111827;
   color: #e5e7eb;
@@ -146,14 +219,7 @@ code {
   font-family: Consolas, Monaco, monospace;
 }
 
-h2 {
-  color: #111827;
-  margin-top: 0;
-}
-
-h3 {
-  color: #1d4ed8;
-}
+/* Math formulas */
 
 .formula {
   background: #f8fafc;
@@ -164,6 +230,8 @@ h3 {
   overflow-x: auto;
 }
 
+/* Lists */
+
 ul {
   margin-top: 10px;
   margin-bottom: 20px;
@@ -172,38 +240,124 @@ ul {
 li {
   margin-bottom: 8px;
 }
-.navbar {
+
+/* Tables */
+
+.metric-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 22px 0;
+  overflow: hidden;
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px #e5e7eb;
+}
+
+.metric-table th {
+  background: #1d4ed8;
+  color: white;
+  text-align: left;
+  padding: 14px 16px;
+}
+
+.metric-table td {
+  padding: 14px 16px;
+  border-top: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+
+.metric-table tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+/* Footer */
+
+.site-footer {
   max-width: 1100px;
-  margin: 24px auto 0;
+  margin: 0 auto 32px;
   padding: 0 24px;
 }
 
-.navbar-inner {
-  background: white;
-  border-radius: 999px;
-  padding: 12px 18px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+.footer-inner {
+  background: #111827;
+  color: #e5e7eb;
+  border-radius: 24px;
+  padding: 24px 28px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
 }
 
-.navbar a {
+.footer-inner p {
+  margin: 8px 0;
+}
+
+.footer-inner a {
+  color: #93c5fd;
   text-decoration: none;
-  color: #1f2937;
   font-weight: 700;
-  padding: 8px 12px;
-  border-radius: 999px;
 }
 
-.navbar a:hover {
-  background: #eff6ff;
-  color: #1d4ed8;
+.footer-inner a:hover {
+  color: #bfdbfe;
+  text-decoration: underline;
 }
 
-.navbar a.active {
-  background: #1d4ed8;
-  color: white;
+/* Mobile */
+
+@media (max-width: 700px) {
+  .page {
+    padding: 32px 18px;
+  }
+
+  .navbar {
+    padding: 0 18px;
+  }
+
+  .navbar-inner {
+    border-radius: 22px;
+  }
+
+  .hero {
+    padding: 32px;
+  }
+
+  h1 {
+    font-size: 34px;
+  }
+
+  .subtitle {
+    font-size: 17px;
+  }
+
+  .card {
+    padding: 26px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pipeline,
+  .mini-diagram {
+    align-items: stretch;
+  }
+
+  .pipeline div,
+  .mini-diagram div {
+    width: 100%;
+  }
+
+  .pipeline span,
+  .mini-diagram span {
+    width: 100%;
+    text-align: center;
+  }
+
+  pre {
+    font-size: 14px;
+  }
+
+  .metric-table {
+    display: block;
+    overflow-x: auto;
+  }
 }
