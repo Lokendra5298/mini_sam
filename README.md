@@ -12,11 +12,13 @@ The goal of this project is to understand the internal architecture of Segment A
 - Focal loss, dice loss, and IoU prediction loss
 - SAM-style best-mask training objective
 
-Project blog:
+## Project Blog
 
-```text
-https://lokendra5298.github.io/mini_sam/
+Read the full project blog here:
 
+[MiniSAM Project Blog](https://lokendra5298.github.io/mini_sam/)
+
+---
 
 ## 1. What MiniSAM Learns
 
@@ -26,7 +28,7 @@ Instead, it learns:
 
 ```text
 Image + Prompt → Object Mask
-```
+````
 
 The prompt can be a point or a box. During training, the box and positive point prompts are generated automatically from the ground-truth mask.
 
@@ -69,6 +71,10 @@ Main components:
 | IoU Head       | Predicts quality score for each mask                        |
 | Losses         | Focal loss, dice loss, and IoU prediction loss              |
 
+For a detailed explanation, see the architecture page:
+
+[MiniSAM Architecture](https://lokendra5298.github.io/mini_sam/architecture.html)
+
 ---
 
 ## 3. Final Validation Results
@@ -85,6 +91,10 @@ MiniSAM was trained from scratch on the Oxford-IIIT Pet segmentation dataset.
 | Oracle Best-Mask IoU | 0.8954 |
 
 The selected-mask IoU is very close to the oracle best-mask IoU. This means the IoU prediction head learned to select almost the best mask candidate.
+
+View the full results page here:
+
+[MiniSAM Results](https://lokendra5298.github.io/mini_sam/results.html)
 
 ---
 
@@ -166,6 +176,15 @@ python tests/test_random_losses.py
 python tests/test_dataset.py
 ```
 
+This verifies:
+
+* Image encoder output shape
+* Prompt encoder output shape
+* Mask decoder output shape
+* Full MiniSAM forward pass
+* Loss functions
+* Dataset loading and prompt generation
+
 ---
 
 ## 8. Train MiniSAM
@@ -184,10 +203,14 @@ python train.py \
 The training script saves:
 
 ```text
-best.pt       # best validation loss
-best_iou.pt   # best validation IoU
+best.pt       # best validation loss checkpoint
+best_iou.pt   # best validation IoU checkpoint
 last.pt       # final epoch checkpoint
 ```
+
+For more details, see:
+
+[MiniSAM Training Details](https://lokendra5298.github.io/mini_sam/training.html)
 
 ---
 
@@ -203,6 +226,17 @@ python scripts/evaluate.py \
   --workers 8
 ```
 
+Expected validation results from the final run:
+
+```text
+Validation IoU       : 0.8949
+Validation Dice      : 0.9440
+Precision            : 0.9447
+Recall               : 0.9442
+Pixel Accuracy       : 0.9028
+Oracle Best-Mask IoU : 0.8954
+```
+
 ---
 
 ## 10. Visualize Predictions
@@ -215,6 +249,12 @@ python scripts/visualize_predictions.py \
   --out_dir runs/minisam_oxford_pet_v2_sam_loss_ep50_bs32/visuals_final \
   --device_id 0 \
   --num_samples 32
+```
+
+Each visualization shows:
+
+```text
+Input image + prompt | Ground-truth mask | Predicted mask | Overlay
 ```
 
 ---
@@ -237,31 +277,26 @@ This improved validation IoU and made training behavior cleaner.
 
 ## 12. MiniSAM vs Original SAM
 
-MiniSAM is not a full reproduction of Meta's Segment Anything Model.
+MiniSAM is not a full reproduction of Meta's Segment Anything Model. It is a small educational implementation for understanding SAM internals.
 
-| Feature       | Original SAM                 | MiniSAM                                 |
-| ------------- | ---------------------------- | --------------------------------------- |
-| Goal          | General segmentation         | Educational from-scratch implementation |
-| Image size    | Large resolution             | 256 × 256                               |
-| Image encoder | Large ViT                    | Small ViT-style encoder                 |
-| Dataset       | Very large segmentation data | Oxford-IIIT Pet                         |
-| Prompt types  | Point, box, mask             | Point, box, mask                        |
-| Decoder       | Two-way transformer          | Small two-way transformer               |
-| Output        | Multiple masks + IoU         | Three masks + IoU                       |
-| Purpose       | Zero-shot segmentation       | Learning SAM internals                  |
+| Feature       | Original SAM                           | MiniSAM                                 |
+| ------------- | -------------------------------------- | --------------------------------------- |
+| Goal          | General promptable segmentation        | Educational from-scratch implementation |
+| Image size    | Large resolution, commonly 1024 × 1024 | 256 × 256                               |
+| Image encoder | Large ViT encoder                      | Small ViT-style encoder                 |
+| Dataset       | Very large segmentation dataset        | Oxford-IIIT Pet                         |
+| Prompt types  | Point, box, mask                       | Point, box, mask                        |
+| Decoder       | Two-way transformer                    | Small two-way transformer               |
+| Output        | Multiple masks + IoU                   | Three masks + IoU                       |
+| Purpose       | Zero-shot segmentation                 | Learning SAM internals                  |
 
 ---
 
 ## 13. Blog Pages
 
-* Home: `https://lokendra5298.github.io/mini_sam/`
-* Architecture: `https://lokendra5298.github.io/mini_sam/architecture.html`
-* Training Details: `https://lokendra5298.github.io/mini_sam/training.html`
-* Results: `https://lokendra5298.github.io/mini_sam/results.html`
+* [Home](https://lokendra5298.github.io/mini_sam/)
+* [Architecture](https://lokendra5298.github.io/mini_sam/architecture.html)
+* [Training Details](https://lokendra5298.github.io/mini_sam/training.html)
+* [Results](https://lokendra5298.github.io/mini_sam/results.html)
 
 ---
-
-## 14. Author
-
-Lokendra Kumar
-GitHub: [Lokendra5298](https://github.com/Lokendra5298)
