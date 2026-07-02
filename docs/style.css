@@ -172,4 +172,38 @@ ul {
 li {
   margin-bottom: 8px;
 }
+.navbar {
+  max-width: 1100px;
+  margin: 24px auto 0;
+  padding: 0 24px;
+}
 
+.navbar-inner {
+  background: white;
+  border-radius: 999px;
+  padding: 12px 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.navbar a {
+  text-decoration: none;
+  color: #1f2937;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 999px;
+}
+
+.navbar a:hover {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.navbar a.active {
+  background: #1d4ed8;
+  color: white;
+}
