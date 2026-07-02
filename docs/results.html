@@ -33,6 +33,91 @@
       <img class="result-img" src="assets/results/sample_002_v2.png">
       <p><a href="index.html">Back to home</a></p>
     </section>
+    <section class="card">
+      <h2>Future Work and Next Improvements</h2>
+    
+      <p>
+        MiniSAM is an educational SAM-style model. The current version already shows
+        strong promptable segmentation performance on Oxford-IIIT Pet, but there are
+        several useful directions for improving it further.
+      </p>
+    
+      <table class="metric-table">
+        <tr>
+          <th>Improvement</th>
+          <th>Why It Helps</th>
+        </tr>
+    
+        <tr>
+          <td>Train with more prompt types</td>
+          <td>
+            The current model uses box and positive point prompts. Adding negative
+            points and previous-mask prompts would make the model more interactive.
+          </td>
+        </tr>
+    
+        <tr>
+          <td>Use stronger image augmentation</td>
+          <td>
+            Color jitter, random scaling, rotation, blur, and crop augmentation can
+            improve generalization.
+          </td>
+        </tr>
+    
+        <tr>
+          <td>Use a larger image encoder</td>
+          <td>
+            Increasing encoder depth or using window attention can improve image
+            representation quality.
+          </td>
+        </tr>
+    
+        <tr>
+          <td>Train on more datasets</td>
+          <td>
+            Testing on other segmentation datasets would show whether MiniSAM
+            generalizes beyond pet segmentation.
+          </td>
+        </tr>
+    
+        <tr>
+          <td>Add automatic mask generation</td>
+          <td>
+            Sampling grid points across the image would allow MiniSAM to generate
+            multiple object masks automatically, similar to SAM-style mask generation.
+          </td>
+        </tr>
+    
+        <tr>
+          <td>Add text-to-mask pipeline</td>
+          <td>
+            Combining MiniSAM with an object detector or grounding model would allow
+            text prompts to be converted into box prompts.
+          </td>
+        </tr>
+      </table>
+    
+      <h3>Most Useful Next Experiment</h3>
+    
+      <p>
+        The most useful next step is to add negative point prompts. This would allow
+        the model to learn not only what region to include, but also what region to
+        exclude.
+      </p>
+    
+      <div class="formula">
+        \[
+        \text{Positive point} \rightarrow \text{include this object}
+        \]
+        \[
+        \text{Negative point} \rightarrow \text{exclude this region}
+        \]
+      </div>
+    
+      <p>
+        This would make MiniSAM more similar to an interactive segmentation model.
+      </p>
+    </section>
   </main>
 </body>
 </html>
