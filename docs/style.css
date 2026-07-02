@@ -154,3 +154,22 @@ h2 {
 h3 {
   color: #1d4ed8;
 }
+
+.formula {
+  background: #f8fafc;
+  border-left: 5px solid #1d4ed8;
+  padding: 18px 22px;
+  margin: 22px 0;
+  border-radius: 12px;
+  overflow-x: auto;
+}
+
+ul {
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+li {
+  margin-bottom: 8px;
+}
+

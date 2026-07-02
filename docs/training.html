@@ -2,19 +2,551 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MiniSAM Training</title>
+  <title>MiniSAM Training Details</title>
   <link rel="stylesheet" href="style.css">
+
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
+
 <body>
   <main class="page">
+
     <section class="card">
-      <h1>Training MiniSAM</h1>
+      <h1>Training Details</h1>
+
       <p>
-        The model is trained using image-mask pairs. Box prompts and positive point prompts
-        are generated from the ground-truth mask during dataset loading.
+        MiniSAM is trained as a promptable segmentation model. Instead of directly
+        learning <code>image → mask</code>, it learns:
       </p>
+
+      <div class="formula">
+        \[
+        \text{Image} + \text{Prompt} \rightarrow \text{Segmentation Mask}
+        \]
+      </div>
+
+      <p>
+        During training, each ground-truth mask is used to generate a box prompt
+        and a positive point prompt. The model then predicts multiple candidate
+        masks and learns to select the best one using an IoU prediction head.
+      </p>
+
+      <pre><code>python train.py \
+  --data_root data/oxford_pet/processed \
+  --out_dir runs/minisam_oxford_pet_v2_sam_loss_ep50_bs32 \
+  --device_id 1 \
+  --epochs 50 \
+  --batch_size 32 \
+  --workers 8 \
+  --lr 1e-4</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>Dataset and Prompt Generation</h2>
+
+      <p>
+        The model is trained on the Oxford-IIIT Pet segmentation dataset.
+        Each sample contains an RGB image and a binary foreground mask.
+      </p>
+
+      <div class="formula">
+        \[
+        x \in \mathbb{R}^{3 \times 256 \times 256},
+        \qquad
+        y \in \{0,1\}^{1 \times 256 \times 256}
+        \]
+      </div>
+
+      <p>
+        From the ground-truth mask, we generate:
+      </p>
+
+      <ul>
+        <li>A box prompt: <code>[x1, y1, x2, y2]</code></li>
+        <li>A positive point prompt sampled from the object region</li>
+      </ul>
+
+      <pre><code>ys, xs = np.where(mask_np > 0)
+
+x1, y1 = xs.min(), ys.min()
+x2, y2 = xs.max(), ys.max()
+
+box = [x1, y1, x2, y2]
+
+idx = random.randint(0, len(xs) - 1)
+point = [[xs[idx], ys[idx]]]
+point_label = [1]</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>1. Image Encoder</h2>
+
+      <p>
+        The image encoder converts the input image into dense visual tokens using
+        a ViT-style patch encoder. The input image is divided into non-overlapping
+        patches using a convolution with kernel size and stride equal to the patch size.
+      </p>
+
+      <div class="formula">
+        \[
+        N = \frac{H}{P} \times \frac{W}{P}
+        \]
+      </div>
+
+      <p>
+        For MiniSAM:
+      </p>
+
+      <div class="formula">
+        \[
+        H = W = 256, \quad P = 16, \quad N = 16 \times 16 = 256
+        \]
+      </div>
+
+      <p>
+        The patch embedding is:
+      </p>
+
+      <div class="formula">
+        \[
+        z_0 = \text{Flatten}(\text{Conv}_{P \times P, stride=P}(x)) + E_{pos}
+        \]
+      </div>
+
+      <p>
+        Then transformer blocks update the visual tokens:
+      </p>
+
+      <div class="formula">
+        \[
+        z'_l = z_{l-1} + \text{MSA}(\text{LN}(z_{l-1}))
+        \]
+        \[
+        z_l = z'_l + \text{MLP}(\text{LN}(z'_l))
+        \]
+      </div>
+
+      <pre><code>self.patch_embed = nn.Conv2d(
+    in_channels,
+    embed_dim,
+    kernel_size=patch_size,
+    stride=patch_size,
+)
+
+self.pos_embed = nn.Parameter(
+    torch.zeros(1, num_patches, embed_dim)
+)
+
+x = self.patch_embed(image)          # [B, C, 16, 16]
+x = x.flatten(2).transpose(1, 2)     # [B, 256, C]
+x = x + self.pos_embed
+
+for block in self.blocks:
+    x = block(x)</code></pre>
+
+      <p>
+        Final image encoder output:
+      </p>
+
+      <pre><code>Image embedding: [B, 256, 16, 16]</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>2. Prompt Encoder</h2>
+
+      <p>
+        The prompt encoder converts point, box, and mask prompts into sparse and
+        dense prompt embeddings. Point and box prompts become sparse tokens.
+        Mask prompts become dense feature maps.
+      </p>
+
+      <h3>Point Prompt Formula</h3>
+
+      <p>
+        A point coordinate is first normalized to the range $[0,1]$:
+      </p>
+
+      <div class="formula">
+        \[
+        p = \left(\frac{x}{W}, \frac{y}{H}\right)
+        \]
+      </div>
+
+      <p>
+        MiniSAM uses random Fourier positional features:
+      </p>
+
+      <div class="formula">
+        \[
+        \phi(p) =
+        \left[
+        \sin(2\pi (2p-1)G),
+        \cos(2\pi (2p-1)G)
+        \right]
+        \]
+      </div>
+
+      <p>
+        Then a prompt-type embedding is added:
+      </p>
+
+      <div class="formula">
+        \[
+        e_{point} = \phi(p) + e_{type}
+        \]
+      </div>
+
+      <pre><code>coords = coords / image_size
+coords = 2.0 * coords - 1.0
+coords = coords @ gaussian_matrix
+coords = 2.0 * torch.pi * coords
+
+pos_embed = torch.cat(
+    [torch.sin(coords), torch.cos(coords)],
+    dim=-1,
+)
+
+point_embedding = pos_embed + point_type_embedding</code></pre>
+
+      <h3>Box Prompt Formula</h3>
+
+      <p>
+        A box is represented using two corner points:
+      </p>
+
+      <div class="formula">
+        \[
+        b = [x_1, y_1, x_2, y_2]
+        \]
+      </div>
+
+      <div class="formula">
+        \[
+        e_{box} =
+        [\phi(x_1,y_1) + e_{top-left},
+        \phi(x_2,y_2) + e_{bottom-right}]
+        \]
+      </div>
+
+      <pre><code>corners = torch.stack([
+    boxes[:, 0:2],
+    boxes[:, 2:4],
+], dim=1)
+
+corner_embedding = self.pe_layer(corners)
+corner_embedding[:, 0, :] += top_left_embedding
+corner_embedding[:, 1, :] += bottom_right_embedding</code></pre>
+
+      <h3>Mask Prompt</h3>
+
+      <p>
+        A previous mask prompt is downsampled using a small CNN so that it matches
+        the image embedding resolution.
+      </p>
+
+      <pre><code>mask_embedding = self.mask_downscaling(mask)
+
+# Output:
+# [B, 256, 16, 16]</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>3. Mask Decoder</h2>
+
+      <p>
+        The mask decoder uses two-way attention to connect prompt tokens with image
+        tokens. This is the part that decides which pixels satisfy the prompt request.
+      </p>
+
+      <p>
+        First, MiniSAM creates learned output tokens:
+      </p>
+
+      <pre><code>IoU token
+Mask token 1
+Mask token 2
+Mask token 3
+Prompt tokens</code></pre>
+
+      <p>
+        The attention operation is:
+      </p>
+
+      <div class="formula">
+        \[
+        \text{Attention}(Q,K,V)
+        =
+        \text{softmax}
+        \left(
+        \frac{QK^T}{\sqrt{d}}
+        \right)V
+        \]
+      </div>
+
+      <p>
+        The two-way transformer performs:
+      </p>
+
+      <div class="formula">
+        \[
+        T \leftarrow T + \text{Attn}(T,T,T)
+        \]
+        \[
+        T \leftarrow T + \text{Attn}(T,I,I)
+        \]
+        \[
+        I \leftarrow I + \text{Attn}(I,T,T)
+        \]
+      </div>
+
+      <p>
+        Here, $T$ represents prompt/output tokens and $I$ represents image tokens.
+      </p>
+
+      <pre><code># Token self-attention
+tokens = tokens + self.token_self_attn(tokens, tokens, tokens)
+
+# Prompt tokens attend to image tokens
+tokens = tokens + self.token_to_image_attn(
+    tokens,
+    image_tokens,
+    image_tokens,
+)
+
+# Image tokens attend back to prompt tokens
+image_tokens = image_tokens + self.image_to_token_attn(
+    image_tokens,
+    tokens,
+    tokens,
+)</code></pre>
+
+      <h3>Hypernetwork Mask Head</h3>
+
+      <p>
+        Each mask token becomes a dynamic pixel classifier.
+      </p>
+
+      <div class="formula">
+        \[
+        h_j = \text{MLP}(t_j)
+        \]
+      </div>
+
+      <p>
+        The mask logit for pixel $i$ is computed by a dot product:
+      </p>
+
+      <div class="formula">
+        \[
+        m_{j,i} = h_j^T f_i
+        \]
+      </div>
+
+      <p>
+        where $h_j$ is the classifier from mask token $j$ and $f_i$ is the upscaled
+        pixel feature.
+      </p>
+
+      <pre><code>mask_token = mask_tokens_out[:, i, :]
+hyper_vector = self.output_hypernetworks_mlps[i](mask_token)
+
+# upscaled_embedding: [B, C, H, W]
+features = upscaled_embedding.view(B, C, H * W)
+
+mask_logits = torch.matmul(hyper_vector, features)
+mask_logits = mask_logits.view(B, 1, H, W)</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>4. Losses</h2>
+
+      <p>
+        MiniSAM uses focal loss, dice loss, and IoU prediction loss. The corrected
+        version uses a SAM-style best-mask objective: among multiple predicted masks,
+        the best mask candidate is selected for the main segmentation loss.
+      </p>
+
+      <h3>Focal Loss</h3>
+
+      <p>
+        Focal loss handles foreground-background imbalance.
+      </p>
+
+      <div class="formula">
+        \[
+        \text{FL}(p,y)
+        =
+        -\alpha y(1-p)^\gamma \log(p)
+        -
+        (1-\alpha)(1-y)p^\gamma \log(1-p)
+        \]
+      </div>
+
+      <pre><code>prob = inputs.sigmoid()
+
+ce_loss = F.binary_cross_entropy_with_logits(
+    inputs,
+    targets,
+    reduction="none",
+)
+
+p_t = prob * targets + (1.0 - prob) * (1.0 - targets)
+loss = ce_loss * ((1.0 - p_t) ** gamma)</code></pre>
+
+      <h3>Dice Loss</h3>
+
+      <p>
+        Dice loss measures mask overlap.
+      </p>
+
+      <div class="formula">
+        \[
+        \text{DiceLoss}
+        =
+        1 -
+        \frac{2\sum_i p_i y_i + \epsilon}
+        {\sum_i p_i + \sum_i y_i + \epsilon}
+        \]
+      </div>
+
+      <pre><code>inputs = inputs.sigmoid()
+
+numerator = 2.0 * (inputs * targets).sum(dim=1)
+denominator = inputs.sum(dim=1) + targets.sum(dim=1)
+
+dice_loss = 1.0 - (numerator + eps) / (denominator + eps)</code></pre>
+
+      <h3>IoU Prediction Loss</h3>
+
+      <p>
+        The IoU head predicts the quality of each candidate mask.
+      </p>
+
+      <div class="formula">
+        \[
+        \text{IoU}
+        =
+        \frac{|M \cap Y|}
+        {|M \cup Y|}
+        \]
+      </div>
+
+      <div class="formula">
+        \[
+        \mathcal{L}_{iou}
+        =
+        \text{MSE}
+        (\hat{q}, \text{IoU}(M,Y))
+        \]
+      </div>
+
+      <h3>Final SAM-Style Loss</h3>
+
+      <p>
+        For each predicted mask $j$, MiniSAM computes:
+      </p>
+
+      <div class="formula">
+        \[
+        \mathcal{L}_{mask}^{(j)}
+        =
+        20 \cdot \mathcal{L}_{focal}^{(j)}
+        +
+        \mathcal{L}_{dice}^{(j)}
+        \]
+      </div>
+
+      <p>
+        Then the best mask is selected:
+      </p>
+
+      <div class="formula">
+        \[
+        j^*
+        =
+        \arg\min_j
+        \mathcal{L}_{mask}^{(j)}
+        \]
+      </div>
+
+      <p>
+        Final loss:
+      </p>
+
+      <div class="formula">
+        \[
+        \mathcal{L}
+        =
+        \mathcal{L}_{mask}^{(j^*)}
+        +
+        \mathcal{L}_{iou}
+        \]
+      </div>
+
+      <pre><code>best_idx = torch.argmin(all_mask_losses.detach(), dim=1)
+
+selected_mask_loss = all_mask_losses[
+    batch_indices,
+    best_idx,
+].mean()
+
+iou_loss = F.mse_loss(
+    pred_ious,
+    all_actual_ious.detach(),
+)
+
+total_loss = selected_mask_loss + iou_loss</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>Final Validation Result</h2>
+
+      <table class="metric-table">
+        <tr>
+          <th>Metric</th>
+          <th>Value</th>
+        </tr>
+        <tr>
+          <td>Validation IoU</td>
+          <td>0.8949</td>
+        </tr>
+        <tr>
+          <td>Validation Dice</td>
+          <td>0.9440</td>
+        </tr>
+        <tr>
+          <td>Precision</td>
+          <td>0.9447</td>
+        </tr>
+        <tr>
+          <td>Recall</td>
+          <td>0.9442</td>
+        </tr>
+        <tr>
+          <td>Pixel Accuracy</td>
+          <td>0.9028</td>
+        </tr>
+        <tr>
+          <td>Oracle Best-Mask IoU</td>
+          <td>0.8954</td>
+        </tr>
+      </table>
+
+      <p>
+        The selected-mask IoU is very close to the oracle best-mask IoU. This shows
+        that the IoU prediction head successfully learned to select the best mask
+        candidate.
+      </p>
+
       <p><a href="index.html">Back to home</a></p>
     </section>
+
   </main>
 </body>
 </html>
