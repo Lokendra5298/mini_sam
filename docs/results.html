@@ -2,9 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>MiniSAM Results</title>
   <link rel="stylesheet" href="style.css">
+
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
+
 <body>
   <nav class="navbar">
     <div class="navbar-inner">
@@ -12,52 +23,117 @@
       <a href="architecture.html">Architecture</a>
       <a href="training.html">Training Details</a>
       <a class="active" href="results.html">Results</a>
-      <a href="https://github.com/Lokendra5298/mini_sam" target="_blank">GitHub</a>
+      <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub</a>
     </div>
   </nav>
 
   <main class="page">
+
     <section class="card">
       <h1>MiniSAM Results</h1>
+
       <p>
         MiniSAM was trained from scratch on the Oxford-IIIT Pet segmentation dataset.
         The model uses box and positive point prompts generated from ground-truth masks.
       </p>
 
-      <h2>Final Training Summary</h2>
+      <h2>Final Model</h2>
+
+      <p>
+        The final selected model is the corrected SAM-style loss version trained for
+        50 epochs. This version uses best-mask training instead of averaging the loss
+        across all candidate masks.
+      </p>
+
+      <pre><code>Final checkpoint:
+runs/minisam_oxford_pet_v2_sam_loss_ep50_bs32/last.pt</code></pre>
+
+      <h2>Final Validation Metrics</h2>
+
+      <table class="metric-table">
+        <tr>
+          <th>Metric</th>
+          <th>Value</th>
+        </tr>
+        <tr>
+          <td>Validation IoU</td>
+          <td>0.8949</td>
+        </tr>
+        <tr>
+          <td>Validation Dice</td>
+          <td>0.9440</td>
+        </tr>
+        <tr>
+          <td>Precision</td>
+          <td>0.9447</td>
+        </tr>
+        <tr>
+          <td>Recall</td>
+          <td>0.9442</td>
+        </tr>
+        <tr>
+          <td>Pixel Accuracy</td>
+          <td>0.9028</td>
+        </tr>
+        <tr>
+          <td>Oracle Best-Mask IoU</td>
+          <td>0.8954</td>
+        </tr>
+      </table>
+
+      <p>
+        The selected-mask IoU is very close to the oracle best-mask IoU. This shows
+        that the IoU prediction head learned to select almost the best candidate mask.
+      </p>
+
+      <h2>Training Summary</h2>
+
       <ul>
-        <li>Final train IoU: approximately 0.957</li>
-        <li>Final validation IoU: approximately 0.888–0.890</li>
-        <li>Training epochs: 120</li>
+        <li>Training epochs: 50</li>
         <li>Input image size: 256 × 256</li>
         <li>Prompt types: box prompt + positive point prompt</li>
+        <li>Number of predicted masks per image: 3</li>
+        <li>Final selected-mask IoU: 0.8949</li>
+        <li>Oracle best-mask IoU: 0.8954</li>
       </ul>
 
       <h2>Training Curves</h2>
-      <img class="result-img" src="assets/results/loss_curve_v3.png">
-      <img class="result-img" src="assets/results/iou_curve_v3.png">
+
+      <p>
+        The curves below show the corrected v2 training run using the SAM-style
+        best-mask objective.
+      </p>
+
+      <img class="result-img" src="assets/results/loss_curve_v3.png" alt="MiniSAM v2 training and validation loss curve">
+      <img class="result-img" src="assets/results/iou_curve_v3.png" alt="MiniSAM v2 training and validation IoU curve">
 
       <h2>Prediction Examples</h2>
-      <img class="result-img" src="assets/results/sample_000_v2.png">
-      <img class="result-img" src="assets/results/sample_001_v2.png">
-      <img class="result-img" src="assets/results/sample_002_v2.png">
-      <p><a href="index.html">Back to home</a></p>
+
+      <p>
+        Each visualization shows the input image with prompt, ground-truth mask,
+        predicted mask, and overlay.
+      </p>
+
+      <img class="result-img" src="assets/results/sample_000_v2.png" alt="MiniSAM prediction example 1">
+      <img class="result-img" src="assets/results/sample_001_v2.png" alt="MiniSAM prediction example 2">
+      <img class="result-img" src="assets/results/sample_002_v2.png" alt="MiniSAM prediction example 3">
     </section>
+
     <section class="card">
       <h2>Future Work and Next Improvements</h2>
-    
+
       <p>
         MiniSAM is an educational SAM-style model. The current version already shows
         strong promptable segmentation performance on Oxford-IIIT Pet, but there are
         several useful directions for improving it further.
       </p>
-    
+
       <table class="metric-table">
         <tr>
           <th>Improvement</th>
           <th>Why It Helps</th>
         </tr>
-    
+
         <tr>
           <td>Train with more prompt types</td>
           <td>
@@ -65,7 +141,7 @@
             points and previous-mask prompts would make the model more interactive.
           </td>
         </tr>
-    
+
         <tr>
           <td>Use stronger image augmentation</td>
           <td>
@@ -73,7 +149,7 @@
             improve generalization.
           </td>
         </tr>
-    
+
         <tr>
           <td>Use a larger image encoder</td>
           <td>
@@ -81,7 +157,7 @@
             representation quality.
           </td>
         </tr>
-    
+
         <tr>
           <td>Train on more datasets</td>
           <td>
@@ -89,7 +165,7 @@
             generalizes beyond pet segmentation.
           </td>
         </tr>
-    
+
         <tr>
           <td>Add automatic mask generation</td>
           <td>
@@ -97,7 +173,7 @@
             multiple object masks automatically, similar to SAM-style mask generation.
           </td>
         </tr>
-    
+
         <tr>
           <td>Add text-to-mask pipeline</td>
           <td>
@@ -106,15 +182,15 @@
           </td>
         </tr>
       </table>
-    
+
       <h3>Most Useful Next Experiment</h3>
-    
+
       <p>
         The most useful next step is to add negative point prompts. This would allow
         the model to learn not only what region to include, but also what region to
         exclude.
       </p>
-    
+
       <div class="formula">
         \[
         \text{Positive point} \rightarrow \text{include this object}
@@ -123,11 +199,32 @@
         \text{Negative point} \rightarrow \text{exclude this region}
         \]
       </div>
-    
+
       <p>
         This would make MiniSAM more similar to an interactive segmentation model.
       </p>
+
+      <p>
+        <a href="index.html">Back to home</a>
+      </p>
     </section>
+
   </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <p>
+        <strong>MiniSAM From Scratch</strong> — an educational SAM-style promptable segmentation project.
+      </p>
+
+      <p>
+        Created by <strong>Lokendra Kumar</strong> |
+        <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub Repository</a> |
+        <a href="index.html">Home</a> |
+        <a href="architecture.html">Architecture</a> |
+        <a href="training.html">Training Details</a>
+      </p>
+    </div>
+  </footer>
 </body>
 </html>
