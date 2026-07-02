@@ -183,7 +183,89 @@ IoU prediction loss =
         validation-loss explosion caused by averaging loss across all mask candidates.
       </p>
     </section>
+    <section class="card">
+  <h2>Tensor Shape Flow</h2>
 
+  <p>
+    Tensor shapes are one of the most important parts of understanding a SAM-style
+    model. The table below shows how the image, prompts, tokens, and masks move
+    through MiniSAM.
+  </p>
+
+  <table class="metric-table">
+    <tr>
+      <th>Stage</th>
+      <th>Tensor Shape</th>
+      <th>Meaning</th>
+    </tr>
+
+    <tr>
+      <td>Input image</td>
+      <td><code>[B, 3, 256, 256]</code></td>
+      <td>Batch of RGB images.</td>
+    </tr>
+
+    <tr>
+      <td>Patch embedding</td>
+      <td><code>[B, 256, 16, 16]</code></td>
+      <td>Image converted into a low-resolution dense feature map.</td>
+    </tr>
+
+    <tr>
+      <td>Image tokens</td>
+      <td><code>[B, 256, 256]</code></td>
+      <td>There are 256 patch tokens, each with 256 channels.</td>
+    </tr>
+
+    <tr>
+      <td>Point prompt</td>
+      <td><code>[B, 1, 2]</code></td>
+      <td>One point coordinate: <code>[x, y]</code>.</td>
+    </tr>
+
+    <tr>
+      <td>Point label</td>
+      <td><code>[B, 1]</code></td>
+      <td>Positive point label. In this project, label <code>1</code> means foreground.</td>
+    </tr>
+
+    <tr>
+      <td>Box prompt</td>
+      <td><code>[B, 4]</code></td>
+      <td>Bounding box: <code>[x1, y1, x2, y2]</code>.</td>
+    </tr>
+
+    <tr>
+      <td>Sparse prompt embedding</td>
+      <td><code>[B, 3, 256]</code></td>
+      <td>One point token plus two box-corner tokens.</td>
+    </tr>
+
+    <tr>
+      <td>Dense prompt embedding</td>
+      <td><code>[B, 256, 16, 16]</code></td>
+      <td>Mask/no-mask embedding aligned with image embedding resolution.</td>
+    </tr>
+
+    <tr>
+      <td>Mask decoder output</td>
+      <td><code>[B, 3, 256, 256]</code></td>
+      <td>Three candidate masks predicted for each image.</td>
+    </tr>
+
+    <tr>
+      <td>IoU prediction output</td>
+      <td><code>[B, 3]</code></td>
+      <td>Predicted quality score for each candidate mask.</td>
+    </tr>
+  </table>
+
+  <p>
+    In short, MiniSAM first compresses the image into a <code>16 × 16</code>
+    feature grid, combines it with prompt embeddings, and then upsamples the
+    decoder output back to a <code>256 × 256</code> mask.
+  </p>
+    </section>
     <section class="card">
       <h2>7. Final Architecture Summary</h2>
 
