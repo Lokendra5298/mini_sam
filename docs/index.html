@@ -131,68 +131,6 @@
         SAM has three important ideas: a user gives a prompt, the model predicts a valid mask,
         and large-scale data is used to train the model.
       </p>
-    
-      <div class="grid">
-        <div class="box">
-          <h3>(a) Task: Promptable Segmentation</h3>
-          <p>
-            SAM is designed to segment an object using different types of prompts.
-            A prompt is a simple instruction given by the user.
-          </p>
-          <ul>
-            <li><strong>Point prompt:</strong> Click on the object you want.</li>
-            <li><strong>Box prompt:</strong> Draw a rectangle around the object.</li>
-            <li><strong>Mask prompt:</strong> Give a rough mask as guidance.</li>
-            <li><strong>Text prompt:</strong> Describe the object using words.</li>
-          </ul>
-          <p>
-            The image and the prompt are given to the model, and the model returns a
-            <strong>valid mask</strong>, which means a clean object region.
-          </p>
-        </div>
-    
-        <div class="box">
-          <h3>(b) Model: Segment Anything Model</h3>
-          <p>
-            SAM uses three main components to convert an image and a prompt into a mask.
-          </p>
-          <ul>
-            <li>
-              <strong>Image encoder:</strong> Reads the image and creates useful image features.
-            </li>
-            <li>
-              <strong>Prompt encoder:</strong> Converts the user prompt, such as a point or box,
-              into prompt features.
-            </li>
-            <li>
-              <strong>Lightweight mask decoder:</strong> Combines image features and prompt features
-              to predict the final segmentation mask.
-            </li>
-          </ul>
-          <p>
-            In simple words, the image encoder understands the image, the prompt encoder understands
-            the user's instruction, and the mask decoder produces the object mask.
-          </p>
-        </div>
-    
-        <div class="box">
-          <h3>(c) Data: Data Engine and SA-1B Dataset</h3>
-          <p>
-            SAM was trained using a large data engine. The model helped create masks, humans checked
-            or improved them, and the improved data was used to train the model again.
-          </p>
-          <p>
-            This repeated cycle created the SA-1B dataset, which contains:
-          </p>
-          <ul>
-            <li><strong>1+ billion masks</strong></li>
-            <li><strong>11 million images</strong></li>
-            <li>Privacy-respecting and licensed images</li>
-          </ul>
-          <p>
-            This large dataset is one reason SAM can work on many different kinds of images and objects.
-          </p>
-        </div>
       </div>
     </section>
 
