@@ -19,376 +19,288 @@
   </nav>
 
   <main class="page">
-
-    <section class="card">
+    <section class="card lead-card">
       <h1>MiniSAM Results</h1>
       <p>
-        Here are the results from training MiniSAM on the Oxford-IIIT Pet dataset.
-        The model was trained from scratch for 50 epochs and achieved strong performance!
+        This page explains the results in a way that a new reader can understand. MiniSAM was trained from scratch
+        on the Oxford-IIIT Pet dataset and evaluated using common segmentation metrics.
       </p>
     </section>
 
     <section class="card">
-      <h2>Final Performance</h2>
-
+      <h2>Final performance</h2>
       <p>
-        These are the final metrics after 50 epochs of training:
+        The table below shows how well the predicted masks match the real masks.
       </p>
-
       <table class="metric-table">
         <tr>
           <th>Metric</th>
           <th>Value</th>
-          <th>What It Means</th>
+          <th>Simple meaning</th>
         </tr>
         <tr>
-          <td><strong>IoU (Intersection over Union)</strong></td>
+          <td><strong>IoU</strong></td>
           <td><strong>0.8949</strong></td>
-          <td>89.49% overlap between predicted mask and real mask. Excellent! ✅</td>
+          <td>The predicted mask overlaps the real mask by about 89.49 percent.</td>
         </tr>
         <tr>
           <td><strong>Dice Score</strong></td>
           <td><strong>0.9440</strong></td>
-          <td>94.40% similarity in shape. Very good! ✅</td>
+          <td>The predicted shape is very similar to the true object shape.</td>
         </tr>
         <tr>
           <td><strong>Precision</strong></td>
           <td><strong>0.9447</strong></td>
-          <td>When model says "object", it's right 94.47% of the time. Very accurate! ✅</td>
+          <td>When MiniSAM says a pixel is object, it is usually correct.</td>
         </tr>
         <tr>
           <td><strong>Recall</strong></td>
           <td><strong>0.9442</strong></td>
-          <td>Model finds 94.42% of all actual object pixels. Complete! ✅</td>
+          <td>MiniSAM finds most of the true object pixels.</td>
         </tr>
         <tr>
           <td><strong>Pixel Accuracy</strong></td>
           <td><strong>0.9028</strong></td>
-          <td>90.28% of all pixels classified correctly. Great! ✅</td>
+          <td>About 90.28 percent of pixels are classified correctly.</td>
         </tr>
       </table>
-
-      <p style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #1d4ed8; border-radius: 4px;">
-        <strong>Summary:</strong> MiniSAM achieves 89% accuracy on pet segmentation. 
-        It's very accurate at finding object boundaries and classifying pixels correctly!
-      </p>
+      <div class="success-box">
+        <strong>Beginner summary:</strong> MiniSAM learned to produce clean object masks. The IoU and Dice values
+        are high, which means the predicted masks are close to the ground-truth masks.
+      </div>
     </section>
 
     <section class="card">
-      <h2>Training Information</h2>
-
-      <h3>Dataset Used</h3>
-      <ul>
-        <li><strong>Name:</strong> Oxford-IIIT Pet Segmentation Dataset</li>
-        <li><strong>Photos:</strong> 3,680 images of pet animals</li>
-        <li><strong>Pets:</strong> Cats and dogs</li>
-        <li><strong>For each image:</strong> RGB photo + binary mask (object vs background)</li>
-      </ul>
-
-      <h3>Training Setup</h3>
-      <ul>
-        <li><strong>Epochs:</strong> 50 (went through all data 50 times)</li>
-        <li><strong>Batch size:</strong> 32 images at a time</li>
-        <li><strong>Learning rate:</strong> 0.0001 (how fast model learns)</li>
-        <li><strong>Prompts:</strong> Box + positive point (generated from ground truth masks)</li>
-        <li><strong>Output masks:</strong> 3 candidates per image (model picks the best)</li>
-      </ul>
-
-      <h3>Training Time</h3>
-      <ul>
-        <li><strong>Total:</strong> ~2-3 hours on GPU</li>
-        <li><strong>Per epoch:</strong> ~2-3 minutes</li>
-        <li><strong>Hardware:</strong> NVIDIA GPU with 8GB+ memory</li>
-      </ul>
-    </section>
-
-    <section class="card">
-      <h2>Training History</h2>
-
-      <p>
-        These graphs show how the model improved during training:
-      </p>
-
-      <img class="result-img" src="assets/results/loss_curve_v3.png" alt="Training and validation loss over epochs">
-      <p style="text-align: center; color: #666; font-size: 14px;">
-        Loss curve: Lower is better. Notice how validation loss stops improving around epoch 40 (good stopping point).
-      </p>
-
-      <img class="result-img" src="assets/results/iou_curve_v3.png" alt="Training and validation IoU over epochs">
-      <p style="text-align: center; color: #666; font-size: 14px;">
-        IoU curve: Higher is better. The model steadily improves until stabilizing around epoch 40.
-      </p>
-    </section>
-
-    <section class="card">
-      <h2>Visual Results</h2>
-
-      <p>
-        Here are some examples of MiniSAM's predictions. Each row shows:
-      </p>
-
-      <ul>
-        <li>📷 <strong>Input image</strong> - The photo with a click marker</li>
-        <li>✅ <strong>Ground truth mask</strong> - The real object boundary (created by humans)</li>
-        <li>🤖 <strong>Predicted mask</strong> - What MiniSAM found</li>
-        <li>🎯 <strong>Overlay</strong> - How well they match</li>
-      </ul>
-
-      <img class="result-img" src="assets/results/sample_000_v2.png" alt="Prediction example 1">
-      <img class="result-img" src="assets/results/sample_001_v2.png" alt="Prediction example 2">
-      <img class="result-img" src="assets/results/sample_002_v2.png" alt="Prediction example 3">
-
-      <p style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #1d4ed8; border-radius: 4px;">
-        <strong>Observation:</strong> The predicted masks (MiniSAM's output) match the ground truth masks very well! 
-        The model successfully learned to find object boundaries.
-      </p>
-    </section>
-
-    <section class="card">
-      <h2>Key Achievements</h2>
-
+      <h2>What do these metrics mean?</h2>
       <div class="grid">
         <div class="box">
-          <h3>🎯 High Accuracy</h3>
+          <h3>IoU</h3>
           <p>
-            89% IoU is excellent for a small model trained from scratch.
+            IoU measures overlap. If the predicted mask and the real mask overlap perfectly, IoU is 1. If they do
+            not overlap, IoU is 0.
           </p>
         </div>
-
         <div class="box">
-          <h3>💡 Built from Scratch</h3>
+          <h3>Dice</h3>
           <p>
-            No pre-trained weights. Model learned everything from 3,680 pet photos.
+            Dice is another overlap score. It is often used in medical imaging and segmentation tasks.
           </p>
         </div>
-
         <div class="box">
-          <h3>⚡ Fast to Train</h3>
+          <h3>Precision</h3>
           <p>
-            50 epochs in just 2-3 hours on a GPU.
+            Precision asks: when the model predicts object pixels, how many are actually object pixels?
           </p>
         </div>
-
         <div class="box">
-          <h3>🧠 Easy to Understand</h3>
+          <h3>Recall</h3>
           <p>
-            Simple architecture without complex tricks.
+            Recall asks: out of all real object pixels, how many did the model successfully find?
           </p>
         </div>
       </div>
     </section>
 
     <section class="card">
-      <h2>How Good Are These Results?</h2>
+      <h2>Training setup</h2>
+      <div class="grid">
+        <div class="box">
+          <h3>Dataset</h3>
+          <ul>
+            <li>Oxford-IIIT Pet dataset.</li>
+            <li>Pet images with segmentation masks.</li>
+            <li>Object class: pet foreground versus background.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h3>Model setup</h3>
+          <ul>
+            <li>MiniSAM trained from scratch.</li>
+            <li>Prompts: box plus positive point.</li>
+            <li>Output: multiple mask candidates and an IoU score.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
 
+    <section class="card">
+      <h2>Training curves</h2>
       <p>
-        Let's put 89% IoU in perspective:
+        Training curves show whether the model improved over time. Loss should go down. IoU should go up.
       </p>
+      <img class="result-img" src="assets/results/loss_curve_v3.png" alt="MiniSAM training and validation loss curve">
+      <p class="caption">
+        Loss curve: lower values mean fewer mistakes.
+      </p>
+      <img class="result-img" src="assets/results/iou_curve_v3.png" alt="MiniSAM training and validation IoU curve">
+      <p class="caption">
+        IoU curve: higher values mean better mask overlap.
+      </p>
+      <div class="explain-box">
+        A good training run usually shows validation IoU increasing and then becoming stable. Once validation IoU
+        stops improving, more training may not help much.
+      </div>
+    </section>
 
+    <section class="card">
+      <h2>Visual results</h2>
+      <p>
+        Visual examples are important because segmentation is a visual task. A good mask should follow the object
+        boundary and avoid background pixels.
+      </p>
+      <ul>
+        <li><strong>Input image:</strong> the original pet image.</li>
+        <li><strong>Ground-truth mask:</strong> the correct mask from the dataset.</li>
+        <li><strong>Predicted mask:</strong> MiniSAM's output.</li>
+        <li><strong>Overlay:</strong> a visual comparison of prediction and ground truth.</li>
+      </ul>
+      <img class="result-img" src="assets/results/sample_000_v2.png" alt="MiniSAM prediction example 1">
+      <img class="result-img" src="assets/results/sample_001_v2.png" alt="MiniSAM prediction example 2">
+      <img class="result-img" src="assets/results/sample_002_v2.png" alt="MiniSAM prediction example 3">
+      <div class="success-box">
+        <strong>Observation:</strong> the predicted masks are close to the ground-truth masks. This means the model
+        learned the main object boundaries well.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>How good is 0.8949 IoU?</h2>
       <table class="metric-table">
         <tr>
-          <th>IoU Level</th>
-          <th>Quality</th>
-          <th>Example</th>
+          <th>IoU range</th>
+          <th>Quality level</th>
+          <th>What it usually looks like</th>
         </tr>
         <tr>
-          <td>50-60%</td>
+          <td>0.50 to 0.60</td>
           <td>Basic</td>
-          <td>Rough boundaries, many errors</td>
+          <td>Rough object region, many boundary mistakes.</td>
         </tr>
         <tr>
-          <td>70-75%</td>
+          <td>0.70 to 0.80</td>
           <td>Good</td>
-          <td>Mostly correct, some edge mistakes</td>
+          <td>Main object is found, but edges may be rough.</td>
         </tr>
         <tr>
-          <td>80-85%</td>
-          <td>Very Good</td>
-          <td>Very few mistakes, mostly correct edges</td>
+          <td>0.80 to 0.90</td>
+          <td>Very good</td>
+          <td>Object boundary is mostly correct.</td>
         </tr>
         <tr>
-          <td><strong>89% ← MiniSAM</strong></td>
-          <td><strong>Excellent</strong></td>
-          <td><strong>Nearly perfect! Professional quality</strong></td>
+          <td><strong>0.8949</strong></td>
+          <td><strong>MiniSAM result</strong></td>
+          <td><strong>Very strong for a small educational model trained from scratch.</strong></td>
         </tr>
         <tr>
-          <td>90%+</td>
-          <td>Expert</td>
-          <td>Nearly human-level accuracy</td>
+          <td>0.90+</td>
+          <td>Excellent</td>
+          <td>Very clean masks with small errors.</td>
         </tr>
       </table>
-
-      <p style="margin-top: 20px; color: #666;">
-        💡 <strong>Important:</strong> MiniSAM achieves this on a small dataset (3,680 images) 
-        without pre-training. This shows the SAM approach really works!
-      </p>
     </section>
 
     <section class="card">
-      <h2>When Does It Work Well?</h2>
-
-      <p>
-        MiniSAM works especially well when:
-      </p>
-
+      <h2>When MiniSAM works well</h2>
       <ul>
-        <li>✅ The object is clearly separated from background</li>
-        <li>✅ The object fills a decent portion of the image</li>
-        <li>✅ Lighting is reasonable (not too dark or blown out)</li>
-        <li>✅ Your prompt (click or box) is close to the object</li>
-        <li>✅ You're working with similar objects as the training data (pets)</li>
+        <li>The object is clearly visible.</li>
+        <li>The prompt is inside or around the correct object.</li>
+        <li>The object is not extremely tiny.</li>
+        <li>The background is not too confusing.</li>
+        <li>The image is similar to the training data.</li>
       </ul>
-
-      <p style="margin-top: 20px; padding: 15px; background: #fff8f0; border-left: 4px solid #f97316; border-radius: 4px;">
-        <strong>When it might struggle:</strong> Tiny objects, very cluttered images, objects touching the edge, 
-        or completely different objects from training data.
-      </p>
+      <div class="warning-box">
+        <strong>Possible failure cases:</strong> very small objects, unclear boundaries, heavy occlusion, cluttered
+        backgrounds, or images very different from the pet dataset.
+      </div>
     </section>
 
     <section class="card">
-      <h2>What's Special About These Results?</h2>
-
+      <h2>What is special about this project?</h2>
       <div class="grid">
         <div class="box">
-          <h3>From Scratch</h3>
+          <h3>Built from scratch</h3>
           <p>
-            No ImageNet weights, no SAM pre-training. 
-            Everything learned directly from 3,680 pet photos.
+            The model is trained directly for this project instead of relying on the full original SAM weights.
           </p>
         </div>
-
         <div class="box">
-          <h3>Small Model</h3>
+          <h3>Prompt-based</h3>
           <p>
-            Small image encoder + simple decoder. 
-            Fast to train and easy to understand.
+            The model learns image plus instruction to mask, not just image to mask.
           </p>
         </div>
-
         <div class="box">
-          <h3>Prompt-Based</h3>
+          <h3>Easy to study</h3>
           <p>
-            Unlike normal segmentation models, 
-            this learns Image + Instruction → Mask.
+            Each component is small enough to understand and test separately.
           </p>
         </div>
-
         <div class="box">
-          <h3>Educational</h3>
+          <h3>Good results</h3>
           <p>
-            Every component tested separately 
-            with easy-to-read code.
+            The final segmentation metrics show strong overlap with the real masks.
           </p>
         </div>
       </div>
     </section>
 
     <section class="card">
-      <h2>Future Improvements</h2>
-
-      <p>
-        MiniSAM is already very good! But here are ideas for making it even better:
-      </p>
-
+      <h2>Ideas for future improvement</h2>
       <table class="metric-table">
         <tr>
-          <th>Idea</th>
-          <th>Expected Benefit</th>
+          <th>Improvement</th>
+          <th>Why it may help</th>
           <th>Difficulty</th>
         </tr>
-
         <tr>
           <td>Add negative point prompts</td>
-          <td>More control: "include this, exclude that"</td>
+          <td>Lets the user say what should not be included.</td>
           <td>Easy</td>
         </tr>
-
         <tr>
           <td>Use stronger data augmentation</td>
-          <td>Better generalization to new images</td>
+          <td>Improves robustness to new images.</td>
           <td>Easy</td>
         </tr>
-
         <tr>
-          <td>Larger image encoder</td>
-          <td>Better image understanding</td>
+          <td>Use a larger image encoder</td>
+          <td>Can learn richer visual features.</td>
           <td>Medium</td>
         </tr>
-
         <tr>
-          <td>Train on multiple datasets</td>
-          <td>Works better on different types of objects</td>
+          <td>Train on more datasets</td>
+          <td>Makes the model work on more object types.</td>
           <td>Medium</td>
         </tr>
-
         <tr>
           <td>Add automatic mask generation</td>
-          <td>Find all objects without prompts</td>
-          <td>Hard</td>
-        </tr>
-
-        <tr>
-          <td>Add text-to-mask (combine with text models)</td>
-          <td>Say "find the cat" instead of clicking</td>
+          <td>Finds many objects without manually giving one prompt.</td>
           <td>Hard</td>
         </tr>
       </table>
     </section>
 
     <section class="card">
-      <h2>Try It Yourself!</h2>
-
+      <h2>Try it yourself</h2>
       <p>
-        Want to train your own version? Follow these steps:
+        To reproduce the experiment, follow the training guide and then run the evaluation and visualization scripts.
       </p>
-
       <ol>
-        <li><a href="index.html">Read the home page</a> to understand the basics</li>
-        <li><a href="architecture.html">Learn how it works</a></li>
-        <li><a href="training.html">Follow the training guide</a></li>
-        <li>Run the commands - training takes just a few hours!</li>
-        <li>Experiment with your own images</li>
+        <li><a href="architecture.html">Understand the model architecture.</a></li>
+        <li><a href="training.html">Train MiniSAM using the guide.</a></li>
+        <li>Evaluate the checkpoint and compare the predicted masks visually.</li>
       </ol>
-
-      <p style="margin-top: 30px; text-align: center;">
-        <a href="training.html">Start Training Now →</a>
+      <p style="text-align: center; margin-top: 30px;">
+        <a class="button-link" href="training.html">Go to Training Guide</a>
       </p>
     </section>
-
-    <section class="card">
-      <h2>Questions?</h2>
-
-      <p>
-        Check the GitHub repository for:
-      </p>
-
-      <ul>
-        <li>📖 Detailed code documentation</li>
-        <li>🐛 Troubleshooting common issues</li>
-        <li>💬 Discussions and questions</li>
-        <li>🔧 Configuration options</li>
-      </ul>
-
-      <p style="margin-top: 20px; text-align: center;">
-        <a href="https://github.com/Lokendra5298/mini_sam" target="_blank">Visit GitHub Repository →</a>
-      </p>
-    </section>
-
-    <section class="card" style="text-align: center;">
-      <p style="margin-top: 30px;">
-        <a href="index.html">← Back to Home</a>
-      </p>
-    </section>
-
   </main>
 
   <footer class="site-footer">
     <div class="footer-inner">
+      <p><strong>MiniSAM From Scratch</strong> - Results explained for beginners.</p>
       <p>
-        <strong>MiniSAM From Scratch</strong> — Simple, educational SAM-style segmentation.
-      </p>
-      <p>
-        Created by <strong>Lokendra Kumar</strong> | 
+        Created by <strong>Lokendra Kumar</strong> |
         <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub</a>
       </p>
     </div>

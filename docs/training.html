@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Training Guide</title>
+  <title>Training MiniSAM</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -19,93 +19,124 @@
   </nav>
 
   <main class="page">
-
-    <section class="card">
+    <section class="card lead-card">
       <h1>Training MiniSAM</h1>
       <p>
-        This guide shows how to train MiniSAM from scratch. No heavy math - just simple steps!
+        This page explains how to train MiniSAM step by step. The goal is simple: teach the model to turn
+        an image plus a prompt into an accurate object mask.
       </p>
     </section>
 
     <section class="card">
-      <h2>Step 0: What You Need</h2>
-
-      <h3>Hardware</h3>
-      <ul>
-        <li>A computer with a GPU (NVIDIA recommended)</li>
-        <li>At least 8GB of GPU memory</li>
-        <li>Or use CPU mode (slower)</li>
-      </ul>
-
-      <h3>Software</h3>
-      <ul>
-        <li>Python 3.8+</li>
-        <li>PyTorch with CUDA support</li>
-        <li>Other dependencies in requirements.txt</li>
-      </ul>
-
-      <h3>Data</h3>
-      <ul>
-        <li>Images of objects</li>
-        <li>For each image: a mask showing where the object is</li>
-        <li>Default: Oxford-IIIT Pet dataset (3,680 pet photos)</li>
-      </ul>
-    </section>
-
-    <section class="card">
-      <h2>Step 1: Set Up (Copy-Paste Ready!)</h2>
-
-      <h3>Clone the Project</h3>
-      <pre><code>git clone https://github.com/Lokendra5298/mini_sam.git
-cd mini_sam</code></pre>
-
-      <h3>Install Python Packages</h3>
-      <pre><code>pip install -r requirements.txt</code></pre>
-
-      <h3>Download Training Data</h3>
-      <pre><code>python scripts/download_oxford_pet.py</code></pre>
-
-      <p style="color: #666; margin-top: 15px;">
-        This downloads 3,680 pet photos with masks. Takes about 10-30 minutes.
-      </p>
-    </section>
-
-    <section class="card">
-      <h2>Step 2: Test Everything Works (Optional but Recommended)</h2>
-
+      <h2>What does training mean?</h2>
       <p>
-        Before training, let's verify each part works correctly:
+        During training, MiniSAM sees many examples. Each example has an image, a prompt, and the correct mask.
+        The model predicts a mask, compares it with the correct mask, and updates itself to make fewer mistakes.
       </p>
+      <div class="pipeline">
+        <div>Image</div>
+        <span>+</span>
+        <div>Prompt</div>
+        <span>&rarr;</span>
+        <div>Predicted mask</div>
+        <span>&rarr;</span>
+        <div>Compare with real mask</div>
+        <span>&rarr;</span>
+        <div>Improve model</div>
+      </div>
+    </section>
 
+    <section class="card">
+      <h2>Step 0: Requirements</h2>
+      <div class="grid">
+        <div class="box">
+          <h3>Hardware</h3>
+          <ul>
+            <li>NVIDIA GPU is recommended.</li>
+            <li>8 GB or more GPU memory is a good starting point.</li>
+            <li>CPU training is possible but much slower.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h3>Software</h3>
+          <ul>
+            <li>Python 3.8 or newer.</li>
+            <li>PyTorch with CUDA if using GPU.</li>
+            <li>All packages from <code>requirements.txt</code>.</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Dataset</h3>
+      <p>
+        The default dataset is Oxford-IIIT Pet. It contains pet images and segmentation masks, so it is perfect
+        for learning object segmentation.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Step 1: Clone and install</h2>
+      <p>
+        First download the repository and install the required packages.
+      </p>
+      <pre><code>git clone https://github.com/Lokendra5298/mini_sam.git
+cd mini_sam
+pip install -r requirements.txt</code></pre>
+      <p>
+        Then download and prepare the Oxford-IIIT Pet dataset.
+      </p>
+      <pre><code>python scripts/download_oxford_pet.py</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>Step 2: Run quick checks</h2>
+      <p>
+        These tests are useful before training. They check whether each model component can run correctly.
+      </p>
       <pre><code>export PYTHONPATH=$PWD
 
-# Test if image encoder works
 python tests/test_random_image_encoder.py
-
-# Test if prompt encoder works
 python tests/test_random_prompt_encoder.py
-
-# Test if mask decoder works
 python tests/test_random_mask_decoder.py
-
-# Test entire model
 python tests/test_random_mini_sam.py
-
-# Test all losses
 python tests/test_random_losses.py
-
-# Test if data loads correctly
 python tests/test_dataset.py</code></pre>
-
-      <p style="color: #666; margin-top: 15px;">
-        If all tests pass, you're ready to train! ✅
-      </p>
+      <div class="success-box">
+        If these tests pass, the model, loss functions, and dataset loader are ready.
+      </div>
     </section>
 
     <section class="card">
-      <h2>Step 3: Start Training</h2>
+      <h2>Step 3: Understand how prompts are created during training</h2>
+      <p>
+        In a real interactive app, the user gives a click or a box. During training, we already have the correct
+        mask, so we can generate prompts automatically from that mask.
+      </p>
+      <ol>
+        <li><strong>Load image and mask:</strong> the mask tells where the object is.</li>
+        <li><strong>Create a box prompt:</strong> find the smallest rectangle that covers the object mask.</li>
+        <li><strong>Create a point prompt:</strong> choose one point inside the object mask.</li>
+        <li><strong>Train:</strong> give image plus prompts to MiniSAM and ask it to predict the mask.</li>
+      </ol>
+      <div class="mini-diagram">
+        <div>Ground-truth mask</div>
+        <span>&rarr;</span>
+        <div>Box prompt</div>
+        <span>+</span>
+        <div>Point prompt</div>
+        <span>&rarr;</span>
+        <div>Train MiniSAM</div>
+      </div>
+      <div class="explain-box">
+        <strong>Important:</strong> The prompt is not the answer. It is only a hint. The model still has to learn
+        the object boundary.
+      </div>
+    </section>
 
-      <h3>Basic Training Command</h3>
+    <section class="card">
+      <h2>Step 4: Start training</h2>
+      <p>
+        Use this command for a normal training run.
+      </p>
       <pre><code>python train.py \
   --data_root data/oxford_pet/processed \
   --out_dir runs/my_minisam_run \
@@ -115,164 +146,115 @@ python tests/test_dataset.py</code></pre>
   --workers 8 \
   --lr 1e-4</code></pre>
 
-      <h3>What Do These Options Mean?</h3>
-
+      <h3>What each option means</h3>
       <table class="metric-table">
         <tr>
           <th>Option</th>
-          <th>What It Does</th>
-          <th>Example</th>
+          <th>Meaning</th>
+          <th>Beginner explanation</th>
         </tr>
         <tr>
-          <td><code>data_root</code></td>
-          <td>Where your training images are</td>
-          <td><code>data/oxford_pet/processed</code></td>
+          <td><code>--data_root</code></td>
+          <td>Dataset folder</td>
+          <td>Where the processed images and masks are stored.</td>
         </tr>
         <tr>
-          <td><code>out_dir</code></td>
-          <td>Where to save the trained model</td>
-          <td><code>runs/my_model</code></td>
+          <td><code>--out_dir</code></td>
+          <td>Output folder</td>
+          <td>Where checkpoints, logs, and results will be saved.</td>
         </tr>
         <tr>
-          <td><code>device_id</code></td>
-          <td>Which GPU to use (0 = first GPU)</td>
-          <td><code>0</code></td>
+          <td><code>--device_id</code></td>
+          <td>GPU number</td>
+          <td>Use <code>0</code> for the first GPU.</td>
         </tr>
         <tr>
-          <td><code>epochs</code></td>
-          <td>How many times to go through all data</td>
-          <td><code>50</code></td>
+          <td><code>--epochs</code></td>
+          <td>Number of passes over the dataset</td>
+          <td>50 means the model sees the full training set 50 times.</td>
         </tr>
         <tr>
-          <td><code>batch_size</code></td>
-          <td>How many images at once (higher = faster but needs more memory)</td>
-          <td><code>32</code></td>
+          <td><code>--batch_size</code></td>
+          <td>Images per training step</td>
+          <td>Larger batches can be faster but need more GPU memory.</td>
         </tr>
         <tr>
-          <td><code>workers</code></td>
-          <td>How many processes load data (CPU cores)</td>
-          <td><code>8</code></td>
+          <td><code>--workers</code></td>
+          <td>Data loading workers</td>
+          <td>More workers can load data faster.</td>
         </tr>
         <tr>
-          <td><code>lr</code></td>
-          <td>Learning rate (how much model changes per step)</td>
-          <td><code>1e-4</code> (0.0001)</td>
+          <td><code>--lr</code></td>
+          <td>Learning rate</td>
+          <td>Controls how strongly the model updates after each mistake.</td>
         </tr>
       </table>
-
-      <h3>Different Hardware? Adjust batch_size!</h3>
-
-      <p><strong>If you run out of memory:</strong> Reduce batch_size</p>
-      <pre><code>python train.py \
-  --data_root data/oxford_pet/processed \
-  --out_dir runs/my_run \
-  --batch_size 16</code></pre>
-
-      <p style="margin-top: 15px;"><strong>If you want faster training:</strong> Increase batch_size</p>
-      <pre><code>python train.py \
-  --data_root data/oxford_pet/processed \
-  --out_dir runs/my_run \
-  --batch_size 64</code></pre>
     </section>
 
     <section class="card">
-      <h2>Step 4: Watch Training Progress</h2>
-
+      <h2>Step 5: Adjust for your GPU memory</h2>
       <p>
-        During training, you'll see output like this:
+        If training stops with an out-of-memory error, reduce the batch size.
       </p>
+      <pre><code>python train.py \
+  --data_root data/oxford_pet/processed \
+  --out_dir runs/my_minisam_run \
+  --device_id 0 \
+  --epochs 50 \
+  --batch_size 16 \
+  --workers 8 \
+  --lr 1e-4</code></pre>
+      <p>
+        If it still fails, try <code>--batch_size 8</code>. Smaller batch size is slower but safer.
+      </p>
+    </section>
 
+    <section class="card">
+      <h2>Step 6: Read the training logs</h2>
+      <p>
+        During training you may see values such as loss, IoU, and Dice. These tell you whether the model is
+        improving.
+      </p>
       <pre><code>Epoch 1/50
-Batch 10/100 | Loss: 2.34 | IoU: 0.45 | Dice: 0.52
-Batch 20/100 | Loss: 1.98 | IoU: 0.52 | Dice: 0.61
-Batch 30/100 | Loss: 1.65 | IoU: 0.58 | Dice: 0.68
-...
-Validation | IoU: 0.72 | Dice: 0.78</code></pre>
+Train Loss: 2.34 | Train IoU: 0.45 | Train Dice: 0.52
+Val   Loss: 1.80 | Val   IoU: 0.55 | Val   Dice: 0.65
 
-      <h3>What Do These Numbers Mean?</h3>
-
+Epoch 10/50
+Train Loss: 0.75 | Train IoU: 0.78 | Train Dice: 0.86
+Val   Loss: 0.82 | Val   IoU: 0.75 | Val   Dice: 0.84</code></pre>
       <table class="metric-table">
         <tr>
           <th>Metric</th>
-          <th>Meaning</th>
-          <th>Good Value</th>
+          <th>What it means</th>
+          <th>Good direction</th>
         </tr>
         <tr>
-          <td><code>Loss</code></td>
-          <td>Error (lower is better)</td>
-          <td>Should decrease over time</td>
+          <td>Loss</td>
+          <td>How wrong the model is.</td>
+          <td>Lower is better.</td>
         </tr>
         <tr>
-          <td><code>IoU</code></td>
-          <td>Overlap between predicted mask and real mask (0-1, higher is better)</td>
-          <td>0.7+ is good</td>
+          <td>IoU</td>
+          <td>Overlap between predicted mask and real mask.</td>
+          <td>Higher is better.</td>
         </tr>
         <tr>
-          <td><code>Dice</code></td>
-          <td>Another overlap measure (0-1, higher is better)</td>
-          <td>0.8+ is good</td>
+          <td>Dice</td>
+          <td>Another overlap score, commonly used for segmentation.</td>
+          <td>Higher is better.</td>
         </tr>
       </table>
-
-      <p style="margin-top: 20px; color: #666;">
-        💡 <strong>Tip:</strong> Look at validation metrics (at epoch end) not training metrics. 
-        Training metrics can be misleading because the model sees training data.
-      </p>
-    </section>
-
-    <section class="card">
-      <h2>Step 5: Generate Prompts Explained</h2>
-
-      <p>
-        MiniSAM needs to learn from instructions (clicks and boxes). Here's how the system generates them from mask data:
-      </p>
-
-      <h3>For Each Training Image:</h3>
-
-      <ol>
-        <li><strong>Load the image and its mask</strong>
-          <p style="color: #666;">
-            The mask shows which pixels are your object (white) and which are background (black).
-          </p>
-        </li>
-
-        <li><strong>Create a box prompt</strong>
-          <p style="color: #666;">
-            Find the smallest rectangle that contains all white pixels. That's your box!
-          </p>
-        </li>
-
-        <li><strong>Create a point prompt</strong>
-          <p style="color: #666;">
-            Pick a random white pixel. That's your click location!
-          </p>
-        </li>
-
-        <li><strong>Train the model</strong>
-          <p style="color: #666;">
-            Give the model the image + box + point, ask it to find the mask.
-          </p>
-        </li>
-      </ol>
-
-      <div class="mini-diagram">
-        <div>Image + Mask</div>
-        <span>→</span>
-        <div>Find Box</div>
-        <span>+</span>
-        <div>Pick Point</div>
-        <span>→</span>
-        <div>Train</div>
+      <div class="warning-box">
+        Watch validation metrics carefully. If training metrics improve but validation metrics get worse, the model
+        may be overfitting.
       </div>
     </section>
 
     <section class="card">
-      <h2>Step 6: Evaluate Your Model</h2>
-
+      <h2>Step 7: Evaluate the trained model</h2>
       <p>
-        After training, test how well your model performs:
+        After training, evaluate the best checkpoint on the validation set.
       </p>
-
       <pre><code>python scripts/evaluate.py \
   --data_root data/oxford_pet/processed \
   --split val \
@@ -280,19 +262,16 @@ Validation | IoU: 0.72 | Dice: 0.78</code></pre>
   --device_id 0 \
   --batch_size 32 \
   --workers 8</code></pre>
-
-      <p style="margin-top: 15px; color: #666;">
-        This tests your model on validation data and shows final metrics.
+      <p>
+        This prints final metrics such as IoU, Dice, precision, recall, and pixel accuracy.
       </p>
     </section>
 
     <section class="card">
-      <h2>Step 7: Visualize Results</h2>
-
+      <h2>Step 8: Visualize predictions</h2>
       <p>
-        Create pictures showing your model's predictions:
+        Numbers are useful, but images are easier to understand. This command saves visual examples.
       </p>
-
       <pre><code>python scripts/visualize_predictions.py \
   --data_root data/oxford_pet/processed \
   --split val \
@@ -300,98 +279,70 @@ Validation | IoU: 0.72 | Dice: 0.78</code></pre>
   --out_dir runs/my_minisam_run/visuals \
   --device_id 0 \
   --num_samples 32</code></pre>
-
-      <p style="margin-top: 15px; color: #666;">
-        This creates 32 sample images showing input, ground truth mask, predicted mask, and overlap.
-        Check the output folder to see how well your model did!
+      <p>
+        Check the output folder. You should see the input image, the true mask, the predicted mask, and an overlay.
       </p>
     </section>
 
     <section class="card">
-      <h2>Common Issues and Fixes</h2>
-
+      <h2>Common problems and fixes</h2>
       <table class="metric-table">
         <tr>
           <th>Problem</th>
-          <th>Cause</th>
-          <th>Solution</th>
+          <th>Likely reason</th>
+          <th>Fix</th>
         </tr>
-
         <tr>
           <td>GPU out of memory</td>
-          <td>Batch size too large</td>
-          <td>Reduce <code>--batch_size 16</code> or <code>--batch_size 8</code></td>
+          <td>Batch size is too large.</td>
+          <td>Use <code>--batch_size 16</code> or <code>--batch_size 8</code>.</td>
         </tr>
-
         <tr>
-          <td>Training very slow</td>
-          <td>Batch size too small or CPU used</td>
-          <td>Increase batch size or use GPU</td>
+          <td>Training is very slow</td>
+          <td>CPU is being used or batch size is very small.</td>
+          <td>Check CUDA installation and use a GPU.</td>
         </tr>
-
         <tr>
-          <td>Loss stays high</td>
-          <td>Model not learning well</td>
-          <td>Try different learning rate: <code>--lr 5e-5</code></td>
+          <td>Loss does not decrease</td>
+          <td>Learning rate may be too high or too low.</td>
+          <td>Try <code>--lr 5e-5</code> or <code>--lr 2e-4</code>.</td>
         </tr>
-
         <tr>
-          <td>Can't download data</td>
-          <td>Internet or permission issue</td>
-          <td>Download manually from Oxford website</td>
+          <td>Dataset error</td>
+          <td>Data path may be wrong.</td>
+          <td>Check <code>--data_root</code> and run the download script again.</td>
         </tr>
-
         <tr>
           <td>ModuleNotFoundError</td>
-          <td>Dependencies not installed</td>
-          <td>Run <code>pip install -r requirements.txt</code> again</td>
+          <td>Dependencies are missing.</td>
+          <td>Run <code>pip install -r requirements.txt</code>.</td>
         </tr>
       </table>
     </section>
 
     <section class="card">
-      <h2>Training Tips</h2>
-
+      <h2>Training checklist</h2>
       <ul>
-        <li>✅ <strong>Test first:</strong> Run the test scripts before training</li>
-        <li>✅ <strong>Start small:</strong> Try with 5 epochs first, then 50</li>
-        <li>✅ <strong>Watch the metrics:</strong> Stop if validation loss increases for many epochs</li>
-        <li>✅ <strong>Save checkpoints:</strong> The model saves best version automatically</li>
-        <li>✅ <strong>Different data:</strong> Try your own images after training on Oxford Pet</li>
-        <li>✅ <strong>Experiment:</strong> Try different batch sizes and learning rates</li>
+        <li>Install dependencies.</li>
+        <li>Download and process the dataset.</li>
+        <li>Run component tests.</li>
+        <li>Start with a small batch size if GPU memory is limited.</li>
+        <li>Track validation IoU and Dice.</li>
+        <li>Save and evaluate the best checkpoint.</li>
+        <li>Visualize predictions before trusting the model.</li>
       </ul>
-    </section>
-
-    <section class="card">
-      <h2>Next: Train Your Own Data!</h2>
-
-      <p>
-        Once you've trained on Oxford Pet, try with your own images:
-      </p>
-
-      <ol>
-        <li>Collect images of your object</li>
-        <li>Create masks (white = object, black = background)</li>
-        <li>Organize in the same format as Oxford Pet</li>
-        <li>Run training with your data</li>
-        <li>See how well it works!</li>
-      </ol>
-
-      <p style="margin-top: 30px; text-align: center;">
-        <a href="index.html">← Back to Home</a> | 
-        <a href="results.html">See Results →</a>
+      <p style="text-align: center; margin-top: 30px;">
+        <a href="architecture.html">Back to Architecture</a> |
+        <a href="results.html">See Results</a>
       </p>
     </section>
-
   </main>
 
   <footer class="site-footer">
     <div class="footer-inner">
+      <p><strong>MiniSAM From Scratch</strong> - Simple training guide for SAM-style segmentation.</p>
       <p>
-        <strong>MiniSAM From Scratch</strong> — Simple training guide for SAM-style models.
-      </p>
-      <p>
-        Created by <strong>Lokendra Kumar</strong> | 
+        Created by <strong>Lokendra Kumar</strong> |
         <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub</a>
       </p>
     </div>

@@ -19,275 +19,293 @@
   </nav>
 
   <main class="page">
-
-    <section class="card">
+    <section class="card lead-card">
       <h1>How MiniSAM Works</h1>
-
       <p>
-        MiniSAM has a simple flow: it takes your image and your instruction (click or box), 
-        and finds the object you're asking for. Let's break it down step by step.
+        MiniSAM follows a simple idea: combine what the model sees in the image with what the user asks through a
+        prompt. The result is a segmentation mask.
       </p>
-
       <div class="pipeline">
         <div>Image</div>
-        <span>→</span>
+        <span>&rarr;</span>
         <div>Image Encoder</div>
-        <span>→</span>
-        <div>Combine with Prompt</div>
-        <span>→</span>
+        <span>&rarr;</span>
+        <div>Prompt</div>
+        <span>&rarr;</span>
         <div>Mask Decoder</div>
-        <span>→</span>
-        <div>Object Mask</div>
+        <span>&rarr;</span>
+        <div>Mask</div>
       </div>
     </section>
 
     <section class="card">
-      <h2>Part 1: Image Encoder - Understanding the Image</h2>
-
+      <h2>First, understand the output: what is a mask?</h2>
       <p>
-        <strong>Job:</strong> Take the image and convert it into a special format that the AI understands.
+        A mask is an image-sized map. Each pixel answers one question: does this pixel belong to the object?
       </p>
-
-      <p>
-        <strong>Think of it like:</strong> A scanner that looks at a photograph and creates a detailed description 
-        of everything it sees - shapes, colors, textures, edges, etc.
-      </p>
-
-      <h3>What Happens Inside?</h3>
-      <ol>
-        <li><strong>Chop the image into pieces</strong> - Split the 256×256 image into 16×16 small patches</li>
-        <li><strong>Understand each piece</strong> - Use AI to understand what each patch contains</li>
-        <li><strong>Let patches communicate</strong> - Let each patch share information with nearby patches</li>
-        <li><strong>Create visual features</strong> - Combine everything into a rich understanding</li>
-      </ol>
-
-      <div class="mini-diagram">
-        <div>Image</div>
-        <span>→</span>
-        <div>Split into Patches</div>
-        <span>→</span>
-        <div>Process Each Patch</div>
-        <span>→</span>
-        <div>Combine Info</div>
-        <span>→</span>
-        <div>Visual Features</div>
-      </div>
-
-      <p style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #1d4ed8; border-radius: 4px;">
-        <strong>Result:</strong> A feature map that the AI can easily work with (16×16 grid where each position 
-        understands what's around it)
-      </p>
-    </section>
-
-    <section class="card">
-      <h2>Part 2: Prompt Encoder - Understanding Your Instruction</h2>
-
-      <p>
-        <strong>Job:</strong> Convert your click or box into something the AI understands.
-      </p>
-
-      <p>
-        <strong>Think of it like:</strong> A translator that converts your gesture into the AI's language.
-      </p>
-
-      <h3>Point Prompt (You click on an object)</h3>
-      <ul>
-        <li>You click at coordinates (x, y)</li>
-        <li>The encoder converts this into a special "click" embedding</li>
-        <li>The embedding tells the AI: "Look at this location!"</li>
-      </ul>
-
-      <h3>Box Prompt (You draw a box)</h3>
-      <ul>
-        <li>You provide 4 numbers: top-left corner and bottom-right corner</li>
-        <li>The encoder converts both corners into special embeddings</li>
-        <li>The embeddings tell the AI: "Find everything inside this rectangle!"</li>
-      </ul>
-
-      <p style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #1d4ed8; border-radius: 4px;">
-        <strong>Result:</strong> Instruction embeddings that represent what you want
-      </p>
-    </section>
-
-    <section class="card">
-      <h2>Part 3: Mask Decoder - Finding the Object</h2>
-
-      <p>
-        <strong>Job:</strong> The "smart brain" that combines the image understanding with your instruction 
-        to figure out which pixels belong to your object.
-      </p>
-
-      <p>
-        <strong>Think of it like:</strong> A detective using clues (image) and a description (instruction) to 
-        find exactly what you're looking for.
-      </p>
-
-      <h3>Two-Way Communication (The Key Magic ✨)</h3>
-
-      <p>
-        The decoder uses a clever trick: it lets the image and your instruction "talk to each other".
-      </p>
-
-      <ol>
-        <li><strong>Image tokens listen to your instruction</strong>
-          <p style="color: #666;">
-            Each pixel region asks: "Does this belong to what the user is asking for?"
-          </p>
-        </li>
-        <li><strong>Your instruction listens to the image</strong>
-          <p style="color: #666;">
-            Your instruction asks: "What parts of the image match what I'm looking for?"
-          </p>
-        </li>
-        <li><strong>They keep talking until they agree</strong>
-          <p style="color: #666;">
-            This back-and-forth happens multiple times until they reach an agreement.
-          </p>
-        </li>
-      </ol>
-
-      <div class="mini-diagram">
-        <div>Image Understanding</div>
-        <span>↔</span>
-        <div>Your Instruction</div>
-        <span>→</span>
-        <div>Agreement: This is it!</div>
-        <span>→</span>
-        <div>Object Mask</div>
-      </div>
-
-      <h3>Multiple Guesses (The AI is Smart)</h3>
-
-      <p>
-        Since your instruction might be ambiguous (should I get just the head or the whole animal?), 
-        MiniSAM creates multiple candidate masks and ranks them:
-      </p>
-
-      <ul>
-        <li>Create 3 different possible masks</li>
-        <li>Score each mask (1, 2, 3 = best to worst)</li>
-        <li>Pick the one with the best score</li>
-      </ul>
-
-      <p style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #1d4ed8; border-radius: 4px;">
-        <strong>Result:</strong> One perfect mask showing exactly which pixels are your object
-      </p>
-    </section>
-
-    <section class="card">
-      <h2>Part 4: IoU Predictor - Quality Score</h2>
-
-      <p>
-        <strong>Job:</strong> Predict how good each mask is (quality scoring).
-      </p>
-
-      <p>
-        <strong>Think of it like:</strong> A quality inspector that grades each mask and picks the best one.
-      </p>
-
-      <p>
-        IoU (Intersection over Union) is a simple way to measure: "How much of the mask matches the real object?"
-      </p>
-
-      <p style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #1d4ed8; border-radius: 4px;">
-        <strong>Result:</strong> A score (0-1) for each mask. Higher = better. The mask with the highest score wins!
-      </p>
-    </section>
-
-    <section class="card">
-      <h2>Complete Flow: Putting It All Together</h2>
-
-      <h3>Example: Finding a Cat in a Photo</h3>
-
-      <p><strong>Step 1:</strong> Image Encoder reads the photo</p>
-      <p style="color: #666; margin-top: 0;">
-        → "I see an animal-like shape, fuzzy texture, some background trees..."
-      </p>
-
-      <p><strong>Step 2:</strong> You click on the cat's head</p>
-      <p style="color: #666; margin-top: 0;">
-        → Prompt encoder: "User wants something at position (120, 85)"
-      </p>
-
-      <p><strong>Step 3:</strong> Mask Decoder connects them</p>
-      <p style="color: #666; margin-top: 0;">
-        → Image: "You clicked on something furry..."<br>
-        → Instruction: "Show me the entire cat"<br>
-        → Together: "Found it! These pixels form the cat"
-      </p>
-
-      <p><strong>Step 4:</strong> Create 3 possible answers</p>
-      <p style="color: #666; margin-top: 0;">
-        → Option 1: Just the head (confidence: 65%)<br>
-        → Option 2: Head + neck (confidence: 92%)<br>
-        → Option 3: Entire body (confidence: 71%)
-      </p>
-
-      <p><strong>Step 5:</strong> Pick the best one</p>
-      <p style="color: #666; margin-top: 0;">
-        → Winner: Option 2 (92% confidence)
-      </p>
-
-      <p><strong>You get:</strong> A perfect silhouette of the cat! ✅</p>
-    </section>
-
-    <section class="card">
-      <h2>Why Multiple Masks?</h2>
-
-      <p>
-        A click can mean different things! If I click on a cat:
-      </p>
-
       <div class="grid">
         <div class="box">
-          <h3>Interpretation 1: The Fur</h3>
-          <p>Just the cat's fuzzy fur</p>
+          <h3>White pixel</h3>
+          <p>The pixel belongs to the object.</p>
         </div>
         <div class="box">
-          <h3>Interpretation 2: The Head</h3>
-          <p>The cat's head region</p>
-        </div>
-        <div class="box">
-          <h3>Interpretation 3: The Whole Body</h3>
-          <p>The entire cat from head to tail</p>
-        </div>
-        <div class="box">
-          <h3>AI's Smart Choice</h3>
-          <p>Predict which is most likely correct</p>
+          <h3>Black pixel</h3>
+          <p>The pixel belongs to the background.</p>
         </div>
       </div>
+      <div class="explain-box">
+        <strong>Goal of MiniSAM:</strong> produce a clean mask for the object selected by the user's prompt.
+      </div>
+    </section>
 
-      <p style="margin-top: 20px;">
-        By creating multiple options and scoring them, MiniSAM handles ambiguity gracefully!
+    <section class="card">
+      <h2>Architecture diagram</h2>
+      <p>
+        This is the main diagram for the model. Put your file at <code>docs/assets/results/architecture.png</code>.
+        If this HTML file is inside <code>docs</code>, the correct relative path is
+        <code>assets/results/architecture.png</code>.
+      </p>
+      <img class="architecture-img" src="assets/results/architecture.png" alt="MiniSAM architecture diagram">
+      <p class="caption">
+        Architecture overview: image features and prompt features meet inside the mask decoder.
       </p>
     </section>
 
     <section class="card">
-      <h2>Key Takeaways</h2>
-
-      <ul>
-        <li>🖼️ <strong>Image Encoder:</strong> Understands what's in the image</li>
-        <li>👆 <strong>Prompt Encoder:</strong> Understands what you're asking for</li>
-        <li>🧠 <strong>Mask Decoder:</strong> Connects them using smart "conversation"</li>
-        <li>⭐ <strong>IoU Predictor:</strong> Picks the best answer</li>
-        <li>🎯 <strong>Multiple Masks:</strong> Handles ambiguity by creating options</li>
-      </ul>
-
-      <p style="margin-top: 30px; text-align: center;">
-        <a href="index.html">← Back to Home</a> | 
-        <a href="training.html">Read Training Guide →</a>
+      <h2>Part 1: Image Encoder</h2>
+      <p>
+        The image encoder is the part that reads the image. It does not directly output the final mask. Instead,
+        it creates image features: a compressed but meaningful representation of the image.
       </p>
+      <h3>Beginner analogy</h3>
+      <p>
+        Think of the image encoder like a person describing a photo. It notices where the object is, where the
+        edges are, what textures are present, and how the background looks.
+      </p>
+      <h3>What happens inside?</h3>
+      <ol>
+        <li>The image is resized to a fixed size.</li>
+        <li>The image is split into smaller patches.</li>
+        <li>The model converts those patches into feature vectors.</li>
+        <li>The feature vectors are refined so each region has context from the image.</li>
+      </ol>
+      <div class="mini-diagram">
+        <div>Photo</div>
+        <span>&rarr;</span>
+        <div>Patches</div>
+        <span>&rarr;</span>
+        <div>Features</div>
+        <span>&rarr;</span>
+        <div>Image understanding</div>
+      </div>
+      <div class="success-box">
+        <strong>Output:</strong> image features that summarize the visual content.
+      </div>
     </section>
 
+    <section class="card">
+      <h2>Part 2: Prompt Encoder</h2>
+      <p>
+        The prompt encoder reads the user's instruction. A prompt is important because it tells the model what to
+        segment. Without a prompt, the model may not know which object the user wants.
+      </p>
+
+      <div class="three-grid">
+        <div class="box">
+          <h3>Positive point</h3>
+          <p>
+            A click inside the target object. It means: this region should be included.
+          </p>
+        </div>
+        <div class="box">
+          <h3>Negative point</h3>
+          <p>
+            A click on background or another object. It means: this region should be excluded.
+          </p>
+        </div>
+        <div class="box">
+          <h3>Box</h3>
+          <p>
+            A rectangle around the object. It gives the model a search area.
+          </p>
+        </div>
+      </div>
+
+      <h3>How are prompts represented?</h3>
+      <p>
+        A click has coordinates such as <code>(x, y)</code>. A box has four coordinates such as
+        <code>(x1, y1, x2, y2)</code>. The prompt encoder converts these numbers into prompt features, so the
+        decoder can use them together with image features.
+      </p>
+      <div class="prompt-flow">
+        <div>Click or box</div>
+        <span>&rarr;</span>
+        <div>Coordinates</div>
+        <span>&rarr;</span>
+        <div>Prompt encoder</div>
+        <span>&rarr;</span>
+        <div>Prompt features</div>
+      </div>
+      <div class="success-box">
+        <strong>Output:</strong> prompt features that describe the user's instruction.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Part 3: Mask Decoder</h2>
+      <p>
+        The mask decoder is the main decision-making part. It receives image features and prompt features, then
+        predicts one or more masks.
+      </p>
+      <h3>Beginner analogy</h3>
+      <p>
+        Imagine a detective. The image features are the scene. The prompt features are the clue. The decoder uses
+        both to decide which pixels belong to the selected object.
+      </p>
+      <h3>Why does the decoder need both?</h3>
+      <ul>
+        <li>The image features tell the model what is visible.</li>
+        <li>The prompt features tell the model what the user wants.</li>
+        <li>The decoder connects both sources of information.</li>
+      </ul>
+      <div class="mini-diagram">
+        <div>Image features</div>
+        <span>+</span>
+        <div>Prompt features</div>
+        <span>&rarr;</span>
+        <div>Mask decoder</div>
+        <span>&rarr;</span>
+        <div>Candidate masks</div>
+      </div>
+      <div class="success-box">
+        <strong>Output:</strong> candidate masks for the object requested by the prompt.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Part 4: IoU Predictor</h2>
+      <p>
+        The model can produce multiple mask candidates. The IoU predictor estimates which candidate is best.
+      </p>
+      <p>
+        IoU means Intersection over Union. In simple words, it measures how much the predicted mask overlaps the
+        correct object mask.
+      </p>
+      <table class="metric-table">
+        <tr>
+          <th>IoU value</th>
+          <th>Meaning</th>
+        </tr>
+        <tr>
+          <td>Close to 0</td>
+          <td>The predicted mask barely matches the real object.</td>
+        </tr>
+        <tr>
+          <td>Around 0.5</td>
+          <td>The mask is partly correct but still has many mistakes.</td>
+        </tr>
+        <tr>
+          <td>Close to 1</td>
+          <td>The predicted mask matches the real object very well.</td>
+        </tr>
+      </table>
+      <div class="success-box">
+        <strong>Output:</strong> quality scores for the candidate masks.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Complete flow with one example</h2>
+      <p>
+        Let us say the image contains a cat and the user clicks on the cat.
+      </p>
+      <ol>
+        <li><strong>Image encoder:</strong> reads the image and creates image features.</li>
+        <li><strong>Prompt encoder:</strong> reads the click location and creates prompt features.</li>
+        <li><strong>Mask decoder:</strong> combines both and predicts possible cat masks.</li>
+        <li><strong>IoU predictor:</strong> scores the masks and selects the best one.</li>
+        <li><strong>Final output:</strong> a binary mask showing the cat.</li>
+      </ol>
+      <div class="pipeline">
+        <div>Cat photo</div>
+        <span>&rarr;</span>
+        <div>Click on cat</div>
+        <span>&rarr;</span>
+        <div>MiniSAM</div>
+        <span>&rarr;</span>
+        <div>Cat mask</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Why multiple masks?</h2>
+      <p>
+        A prompt can be ambiguous. If you click on a pet's face, the correct answer could be the face, the head,
+        or the whole animal. Producing multiple masks helps the model handle this uncertainty.
+      </p>
+      <div class="grid">
+        <div class="box">
+          <h3>Candidate 1</h3>
+          <p>Maybe only the head.</p>
+        </div>
+        <div class="box">
+          <h3>Candidate 2</h3>
+          <p>Maybe the whole animal.</p>
+        </div>
+        <div class="box">
+          <h3>Candidate 3</h3>
+          <p>Maybe the animal plus some background.</p>
+        </div>
+        <div class="box">
+          <h3>Best choice</h3>
+          <p>The IoU predictor ranks the candidates.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>How MiniSAM is different from a normal segmentation model</h2>
+      <table class="metric-table">
+        <tr>
+          <th>Normal segmentation</th>
+          <th>MiniSAM-style segmentation</th>
+        </tr>
+        <tr>
+          <td>Usually predicts a fixed class, such as cat or dog.</td>
+          <td>Predicts the object selected by the user prompt.</td>
+        </tr>
+        <tr>
+          <td>The same image usually gives the same output.</td>
+          <td>The same image can give different outputs for different prompts.</td>
+        </tr>
+        <tr>
+          <td>Less interactive.</td>
+          <td>Interactive: click or box guides the model.</td>
+        </tr>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Key takeaways</h2>
+      <ul>
+        <li>The image encoder understands the photo.</li>
+        <li>The prompt encoder understands the user instruction.</li>
+        <li>The mask decoder combines image plus prompt to predict masks.</li>
+        <li>The IoU predictor chooses the best mask candidate.</li>
+        <li>The prompt is what makes the model interactive.</li>
+      </ul>
+      <p style="text-align: center; margin-top: 30px;">
+        <a href="index.html">Back to Home</a> |
+        <a href="training.html">Read Training Guide</a>
+      </p>
+    </section>
   </main>
 
   <footer class="site-footer">
     <div class="footer-inner">
+      <p><strong>MiniSAM From Scratch</strong> - Easy SAM-style segmentation explained.</p>
       <p>
-        <strong>MiniSAM From Scratch</strong> — Easy SAM-style segmentation explained.
-      </p>
-      <p>
-        Created by <strong>Lokendra Kumar</strong> | 
+        Created by <strong>Lokendra Kumar</strong> |
         <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub</a>
       </p>
     </div>

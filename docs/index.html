@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>MiniSAM - Click to Segment Anything</title>
+  <title>MiniSAM - Beginner Friendly SAM From Scratch</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -20,182 +19,204 @@
   </nav>
 
   <main class="page">
-
     <section class="hero">
-      <p class="tag">MiniSAM • Click to Segment Anything</p>
-      <h1>MiniSAM: Simple AI for Object Segmentation</h1>
+      <p class="tag">MiniSAM from scratch</p>
+      <h1>Learn how a small SAM-style model segments objects from clicks and boxes.</h1>
       <p class="subtitle">
-        Point at an object → MiniSAM finds its boundaries. Draw a box around an object → MiniSAM finds it.
-        This is a small, easy-to-understand version of SAM (Segment Anything Model) built from scratch.
+        MiniSAM is a simple educational version of the Segment Anything idea. Give it an image and a prompt,
+        such as one click or one box, and it predicts the object mask.
       </p>
       <div class="buttons">
-        <a href="architecture.html">Learn How It Works</a>
-        <a href="training.html">Training Guide</a>
-        <a href="results.html">See Examples</a>
-        <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub Code</a>
+        <a href="architecture.html">Start with the explanation</a>
+        <a href="training.html">Train the model</a>
+        <a href="results.html">See results</a>
+        <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">View code</a>
+      </div>
+    </section>
+
+    <section class="card lead-card">
+      <h2>This blog is for complete beginners</h2>
+      <p>
+        You do not need to know transformers, attention, embeddings, or the original SAM paper before reading this.
+        We will first understand the problem in plain language, then slowly connect it to the MiniSAM architecture.
+      </p>
+      <div class="definition-list">
+        <dt>Image</dt>
+        <dd>The photo we want to segment.</dd>
+        <dt>Prompt</dt>
+        <dd>A small instruction from the user, for example a click on the object or a box around it.</dd>
+        <dt>Mask</dt>
+        <dd>A black-and-white output where white means object and black means background.</dd>
+        <dt>Segmentation</dt>
+        <dd>The task of deciding which pixels belong to the object.</dd>
       </div>
     </section>
 
     <section class="card">
-      <h2>What Does MiniSAM Do?</h2>
+      <h2>What problem does MiniSAM solve?</h2>
       <p>
-        MiniSAM is like a smart scissors tool in image editing software.
+        Imagine you have a pet photo and you want only the cat, dog, or object in the image. Drawing the boundary
+        manually is slow. MiniSAM learns to do this automatically.
       </p>
-      <ul>
-        <li><strong>You click on an object</strong> or draw a box around it</li>
-        <li><strong>MiniSAM understands</strong> what object you want</li>
-        <li><strong>It automatically finds</strong> the exact boundaries of that object</li>
-        <li><strong>You get a clean mask</strong> (silhouette) of just that object</li>
-      </ul>
-    </section>
-
-    <section class="card">
-      <h2>How Does It Work? (Simple Version)</h2>
-      
-      <p><strong>Step 1: Image Understanding</strong></p>
-      <p>
-        The AI looks at your image and creates a visual "understanding" of it.
-        It notices shapes, colors, textures, and edges.
-      </p>
-
-      <p><strong>Step 2: You Give Instructions</strong></p>
-      <p>
-        You click on the object you want, or draw a box around it.
-        This is your "instruction" to the AI.
-      </p>
-
-      <p><strong>Step 3: Find the Object</strong></p>
-      <p>
-        The AI uses your instruction to find exactly which pixels belong to that object.
-        It traces the boundaries carefully.
-      </p>
-
-      <p><strong>Step 4: Return the Mask</strong></p>
-      <p>
-        You get a clean black-and-white image showing only the object you asked for.
-        The object is white, everything else is black.
-      </p>
-
       <div class="pipeline">
-        <div>📷<br>Your Image</div>
-        <span>→</span>
-        <div>🧠<br>AI Understands Image</div>
-        <span>→</span>
-        <div>👆<br>You Click/Box</div>
-        <span>→</span>
-        <div>✂️<br>AI Finds Boundaries</div>
-        <span>→</span>
-        <div>✅<br>Perfect Mask</div>
+        <div>Input photo</div>
+        <span>&rarr;</span>
+        <div>User prompt</div>
+        <span>&rarr;</span>
+        <div>MiniSAM</div>
+        <span>&rarr;</span>
+        <div>Object mask</div>
       </div>
+      <p>
+        The important idea is this: MiniSAM is not only looking at the image. It also listens to the prompt.
+        That makes it interactive. The same image can produce different masks depending on where you click or
+        which box you draw.
+      </p>
     </section>
 
     <section class="card">
-      <h2>Architecture: The 4 Key Parts</h2>
-
+      <h2>The four pieces of MiniSAM</h2>
       <p>
-        MiniSAM is made of 4 simple building blocks working together:
+        MiniSAM can be understood as four simple modules. Each module has one clear job.
       </p>
-
       <div class="grid">
         <div class="box">
-          <h3>1️⃣ Image Encoder</h3>
+          <span class="small-label">Part 1</span>
+          <h3>Image Encoder</h3>
           <p>
-            Takes your image and converts it into a special format the AI understands.
-            Like scanning and understanding a photograph.
+            Reads the image and converts it into feature maps. A feature map is a compact description of edges,
+            colors, textures, and shapes.
           </p>
-          <p><code>Input: Image → Output: Visual Understanding</code></p>
         </div>
-
         <div class="box">
-          <h3>2️⃣ Prompt Encoder</h3>
+          <span class="small-label">Part 2</span>
+          <h3>Prompt Encoder</h3>
           <p>
-            Converts your instruction (click or box) into something the AI understands.
-            Like translating your gesture into AI language.
+            Reads the user's prompt, such as a point or a box, and converts it into prompt features.
           </p>
-          <p><code>Input: Click/Box → Output: Instruction</code></p>
         </div>
-
         <div class="box">
-          <h3>3️⃣ Mask Decoder</h3>
+          <span class="small-label">Part 3</span>
+          <h3>Mask Decoder</h3>
           <p>
-            The "smart brain" that combines what it sees (image) with what you want (instruction).
-            It figures out which pixels belong to your object.
+            Combines image features and prompt features, then predicts possible object masks.
           </p>
-          <p><code>Input: Image + Instruction → Output: Boundaries</code></p>
         </div>
-
         <div class="box">
-          <h3>4️⃣ IoU Predictor</h3>
+          <span class="small-label">Part 4</span>
+          <h3>IoU Predictor</h3>
           <p>
-            Checks the quality of the result. It predicts "how good" the mask is
-            so it can pick the best one if multiple options exist.
+            Gives a quality score to each predicted mask so the best mask can be selected.
           </p>
-          <p><code>Input: Mask → Output: Quality Score</code></p>
         </div>
       </div>
-
-      <p style="margin-top: 30px; text-align: center; color: #666;">
-        <a href="architecture.html">→ Read detailed explanations →</a>
-      </p>
     </section>
 
     <section class="card">
-      <h2>Real Example</h2>
+      <h2>Architecture diagram</h2>
       <p>
-        Here's what MiniSAM produces on actual pet photos:
+        The full architecture is shown below. The image should be placed at
+        <code>docs/assets/results/architecture.png</code>. Because these HTML files normally live inside the
+        <code>docs</code> folder, the page loads it using <code>assets/results/architecture.png</code>.
       </p>
-      <img class="result-img" src="assets/results/sample_000_v2.png" alt="MiniSAM example 1">
-      <img class="result-img" src="assets/results/sample_001_v2.png" alt="MiniSAM example 2">
-      <p style="text-align: center; color: #666;">
-        <a href="results.html">See more examples →</a>
+      <img class="architecture-img" src="assets/results/architecture.png" alt="MiniSAM architecture diagram showing image encoder, prompt encoder, mask decoder, and mask outputs">
+      <p class="caption">
+        MiniSAM flow: image plus prompt becomes image features plus prompt features, then the decoder predicts masks.
       </p>
     </section>
 
     <section class="card">
-      <h2>Quick Facts</h2>
+      <h2>What are prompts?</h2>
+      <p>
+        A prompt is the user's instruction. It tells the model what object to segment.
+      </p>
+      <div class="three-grid">
+        <div class="box">
+          <h3>Positive point</h3>
+          <p>
+            A click inside the object. It means: include the object near this point.
+          </p>
+        </div>
+        <div class="box">
+          <h3>Negative point</h3>
+          <p>
+            A click on the background or wrong object. It means: do not include this region.
+          </p>
+        </div>
+        <div class="box">
+          <h3>Box prompt</h3>
+          <p>
+            A rectangle around the object. It tells the model where to search.
+          </p>
+        </div>
+      </div>
+      <div class="explain-box">
+        <strong>In this MiniSAM project:</strong> training uses box prompts and positive point prompts generated
+        automatically from the ground-truth masks.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Simple example</h2>
+      <p>
+        Suppose the image contains a dog. If you click on the dog, MiniSAM tries to return the dog mask. If you draw
+        a box around the dog's head, it may focus on the head region. The prompt controls the answer.
+      </p>
+      <div class="mini-diagram">
+        <div>Dog image</div>
+        <span>&rarr;</span>
+        <div>Click on dog</div>
+        <span>&rarr;</span>
+        <div>MiniSAM</div>
+        <span>&rarr;</span>
+        <div>Dog mask</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Real prediction examples</h2>
+      <p>
+        The examples below show MiniSAM predictions from the Oxford-IIIT Pet dataset.
+      </p>
+      <img class="result-img" src="assets/results/sample_000_v2.png" alt="MiniSAM prediction example 1">
+      <img class="result-img" src="assets/results/sample_001_v2.png" alt="MiniSAM prediction example 2">
+      <p class="caption">
+        Each example compares the input image, the real mask, the predicted mask, and the overlap.
+      </p>
+      <p style="text-align: center; margin-top: 20px;">
+        <a class="button-link" href="results.html">See full results</a>
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>What you will learn from this project</h2>
       <ul>
-        <li>✅ <strong>Easy to understand</strong> - No complex math needed to get the idea</li>
-        <li>✅ <strong>Built from scratch</strong> - Not using pre-trained models</li>
-        <li>✅ <strong>Works well</strong> - Achieves 89% accuracy on pet images</li>
-        <li>✅ <strong>Educational</strong> - Learn how SAM-style models work</li>
-        <li>✅ <strong>Open source</strong> - Full code available on GitHub</li>
+        <li>How prompt-based segmentation works.</li>
+        <li>How a SAM-style model is split into image encoder, prompt encoder, and mask decoder.</li>
+        <li>How training data is converted into box and point prompts.</li>
+        <li>How to train and evaluate the model on the Oxford-IIIT Pet dataset.</li>
+        <li>How to read IoU, Dice, precision, recall, and pixel accuracy.</li>
       </ul>
     </section>
 
     <section class="card">
-      <h2>Get Started</h2>
-
-      <h3>Option 1: Try It (1 minute)</h3>
-      <pre><code>git clone https://github.com/Lokendra5298/mini_sam.git
-cd mini_sam
-pip install -r requirements.txt
-python scripts/download_oxford_pet.py</code></pre>
-
-      <h3>Option 2: Learn How It Works</h3>
+      <h2>Start here</h2>
       <p>
-        Visit the <a href="architecture.html">"How It Works"</a> page for simple, visual explanations.
+        The best reading order is:
       </p>
-
-      <h3>Option 3: Train Your Own</h3>
-      <p>
-        Check the <a href="training.html">Training Guide</a> for step-by-step instructions.
-      </p>
-
-      <p style="margin-top: 20px;">
-        <strong>Want the full details?</strong> See the 
-        <a href="https://github.com/Lokendra5298/mini_sam" target="_blank">GitHub repository</a>.
-      </p>
+      <ol>
+        <li><a href="architecture.html">How It Works</a> - understand the model.</li>
+        <li><a href="training.html">Training Guide</a> - run the training commands.</li>
+        <li><a href="results.html">Results</a> - interpret the final metrics and examples.</li>
+      </ol>
     </section>
-
   </main>
 
   <footer class="site-footer">
     <div class="footer-inner">
+      <p><strong>MiniSAM From Scratch</strong> - A beginner-friendly SAM-style segmentation project.</p>
       <p>
-        <strong>MiniSAM From Scratch</strong> — Learn SAM-style segmentation the easy way.
-      </p>
-      <p>
-        Created by <strong>Lokendra Kumar</strong> | 
+        Created by <strong>Lokendra Kumar</strong> |
         <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub</a>
       </p>
     </div>
