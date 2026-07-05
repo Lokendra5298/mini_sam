@@ -3,25 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>MiniSAM Training Details</title>
+  <title>Training Guide</title>
   <link rel="stylesheet" href="style.css">
-
-  <script>
-    window.MathJax = {
-      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
-      svg: { fontCache: 'global' }
-    };
-  </script>
-  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 
 <body>
   <nav class="navbar">
     <div class="navbar-inner">
       <a href="index.html">Home</a>
-      <a href="architecture.html">Architecture</a>
-      <a class="active" href="training.html">Training Details</a>
+      <a href="architecture.html">How It Works</a>
+      <a class="active" href="training.html">Training Guide</a>
       <a href="results.html">Results</a>
       <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub</a>
     </div>
@@ -30,788 +21,365 @@
   <main class="page">
 
     <section class="card">
-      <h1>Training Details</h1>
+      <h1>Training MiniSAM</h1>
+      <p>
+        This guide shows how to train MiniSAM from scratch. No heavy math - just simple steps!
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Step 0: What You Need</h2>
+
+      <h3>Hardware</h3>
+      <ul>
+        <li>A computer with a GPU (NVIDIA recommended)</li>
+        <li>At least 8GB of GPU memory</li>
+        <li>Or use CPU mode (slower)</li>
+      </ul>
+
+      <h3>Software</h3>
+      <ul>
+        <li>Python 3.8+</li>
+        <li>PyTorch with CUDA support</li>
+        <li>Other dependencies in requirements.txt</li>
+      </ul>
+
+      <h3>Data</h3>
+      <ul>
+        <li>Images of objects</li>
+        <li>For each image: a mask showing where the object is</li>
+        <li>Default: Oxford-IIIT Pet dataset (3,680 pet photos)</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Step 1: Set Up (Copy-Paste Ready!)</h2>
+
+      <h3>Clone the Project</h3>
+      <pre><code>git clone https://github.com/Lokendra5298/mini_sam.git
+cd mini_sam</code></pre>
+
+      <h3>Install Python Packages</h3>
+      <pre><code>pip install -r requirements.txt</code></pre>
+
+      <h3>Download Training Data</h3>
+      <pre><code>python scripts/download_oxford_pet.py</code></pre>
+
+      <p style="color: #666; margin-top: 15px;">
+        This downloads 3,680 pet photos with masks. Takes about 10-30 minutes.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Step 2: Test Everything Works (Optional but Recommended)</h2>
 
       <p>
-        MiniSAM is trained as a promptable segmentation model. Instead of directly
-        learning <code>image → mask</code>, it learns:
+        Before training, let's verify each part works correctly:
       </p>
 
-      <div class="formula">
-        \[
-        \text{Image} + \text{Prompt} \rightarrow \text{Segmentation Mask}
-        \]
-      </div>
+      <pre><code>export PYTHONPATH=$PWD
 
-      <p>
-        During training, each ground-truth mask is used to generate a box prompt
-        and a positive point prompt. The model then predicts multiple candidate
-        masks and learns to select the best one using an IoU prediction head.
+# Test if image encoder works
+python tests/test_random_image_encoder.py
+
+# Test if prompt encoder works
+python tests/test_random_prompt_encoder.py
+
+# Test if mask decoder works
+python tests/test_random_mask_decoder.py
+
+# Test entire model
+python tests/test_random_mini_sam.py
+
+# Test all losses
+python tests/test_random_losses.py
+
+# Test if data loads correctly
+python tests/test_dataset.py</code></pre>
+
+      <p style="color: #666; margin-top: 15px;">
+        If all tests pass, you're ready to train! ✅
       </p>
+    </section>
 
+    <section class="card">
+      <h2>Step 3: Start Training</h2>
+
+      <h3>Basic Training Command</h3>
       <pre><code>python train.py \
   --data_root data/oxford_pet/processed \
-  --out_dir runs/minisam_oxford_pet_v2_sam_loss_ep50_bs32 \
-  --device_id 1 \
+  --out_dir runs/my_minisam_run \
+  --device_id 0 \
   --epochs 50 \
   --batch_size 32 \
   --workers 8 \
   --lr 1e-4</code></pre>
-    </section>
 
-    <section class="card">
-      <h2>Dataset and Prompt Generation</h2>
-
-      <p>
-        The model is trained on the Oxford-IIIT Pet segmentation dataset.
-        Each sample contains an RGB image and a binary foreground mask.
-      </p>
-
-      <div class="formula">
-        \[
-        x \in \mathbb{R}^{3 \times 256 \times 256},
-        \qquad
-        y \in \{0,1\}^{1 \times 256 \times 256}
-        \]
-      </div>
-
-      <p>
-        From the ground-truth mask, MiniSAM generates:
-      </p>
-
-      <ul>
-        <li>A box prompt: <code>[x1, y1, x2, y2]</code></li>
-        <li>A positive point prompt sampled from the object region</li>
-      </ul>
-
-      <pre><code>ys, xs = np.where(mask_np > 0)
-
-x1, y1 = xs.min(), ys.min()
-x2, y2 = xs.max(), ys.max()
-
-box = [x1, y1, x2, y2]
-
-idx = random.randint(0, len(xs) - 1)
-point = [[xs[idx], ys[idx]]]
-point_label = [1]</code></pre>
-    </section>
-
-    <section class="card">
-      <h2>1. Image Encoder</h2>
-
-      <p>
-        The image encoder converts the input image into dense visual tokens using
-        a ViT-style patch encoder. The input image is divided into non-overlapping
-        patches using a convolution with kernel size and stride equal to the patch size.
-      </p>
-
-      <div class="formula">
-        \[
-        N = \frac{H}{P} \times \frac{W}{P}
-        \]
-      </div>
-
-      <p>
-        For MiniSAM:
-      </p>
-
-      <div class="formula">
-        \[
-        H = W = 256, \quad P = 16, \quad N = 16 \times 16 = 256
-        \]
-      </div>
-
-      <p>
-        The patch embedding is:
-      </p>
-
-      <div class="formula">
-        \[
-        z_0 = \text{Flatten}(\text{Conv}_{P \times P, stride=P}(x)) + E_{pos}
-        \]
-      </div>
-
-      <p>
-        Then transformer blocks update the visual tokens:
-      </p>
-
-      <div class="formula">
-        \[
-        z'_l = z_{l-1} + \text{MSA}(\text{LN}(z_{l-1}))
-        \]
-        \[
-        z_l = z'_l + \text{MLP}(\text{LN}(z'_l))
-        \]
-      </div>
-
-      <pre><code>self.patch_embed = nn.Conv2d(
-    in_channels,
-    embed_dim,
-    kernel_size=patch_size,
-    stride=patch_size,
-)
-
-self.pos_embed = nn.Parameter(
-    torch.zeros(1, num_patches, embed_dim)
-)
-
-x = self.patch_embed(image)          # [B, C, 16, 16]
-x = x.flatten(2).transpose(1, 2)     # [B, 256, C]
-x = x + self.pos_embed
-
-for block in self.blocks:
-    x = block(x)</code></pre>
-
-      <p>
-        Final image encoder output:
-      </p>
-
-      <pre><code>Image embedding: [B, 256, 16, 16]</code></pre>
-    </section>
-
-    <section class="card">
-      <h2>2. Prompt Encoder</h2>
-
-      <p>
-        The prompt encoder converts point, box, and mask prompts into sparse and
-        dense prompt embeddings. Point and box prompts become sparse tokens.
-        Mask prompts become dense feature maps.
-      </p>
-
-      <h3>Point Prompt Formula</h3>
-
-      <p>
-        A point coordinate is first normalized to the range <code>[0, 1]</code>:
-      </p>
-
-      <div class="formula">
-        \[
-        p = \left(\frac{x}{W}, \frac{y}{H}\right)
-        \]
-      </div>
-
-      <p>
-        MiniSAM uses random Fourier positional features:
-      </p>
-
-      <div class="formula">
-        \[
-        \phi(p) =
-        \left[
-        \sin(2\pi (2p-1)G),
-        \cos(2\pi (2p-1)G)
-        \right]
-        \]
-      </div>
-
-      <p>
-        Then a prompt-type embedding is added:
-      </p>
-
-      <div class="formula">
-        \[
-        e_{point} = \phi(p) + e_{type}
-        \]
-      </div>
-
-      <pre><code>coords = coords / image_size
-coords = 2.0 * coords - 1.0
-coords = coords @ gaussian_matrix
-coords = 2.0 * torch.pi * coords
-
-pos_embed = torch.cat(
-    [torch.sin(coords), torch.cos(coords)],
-    dim=-1,
-)
-
-point_embedding = pos_embed + point_type_embedding</code></pre>
-
-      <h3>Box Prompt Formula</h3>
-
-      <p>
-        A box is represented using two corner points:
-      </p>
-
-      <div class="formula">
-        \[
-        b = [x_1, y_1, x_2, y_2]
-        \]
-      </div>
-
-      <div class="formula">
-        \[
-        e_{box} =
-        [\phi(x_1,y_1) + e_{top-left},
-        \phi(x_2,y_2) + e_{bottom-right}]
-        \]
-      </div>
-
-      <pre><code>corners = torch.stack([
-    boxes[:, 0:2],
-    boxes[:, 2:4],
-], dim=1)
-
-corner_embedding = self.pe_layer(corners)
-corner_embedding[:, 0, :] += top_left_embedding
-corner_embedding[:, 1, :] += bottom_right_embedding</code></pre>
-
-      <h3>Mask Prompt</h3>
-
-      <p>
-        A previous mask prompt is downsampled using a small CNN so that it matches
-        the image embedding resolution.
-      </p>
-
-      <pre><code>mask_embedding = self.mask_downscaling(mask)
-
-# Output:
-# [B, 256, 16, 16]</code></pre>
-    </section>
-
-    <section class="card">
-      <h2>3. Mask Decoder</h2>
-
-      <p>
-        The mask decoder uses two-way attention to connect prompt tokens with image
-        tokens. This is the part that decides which pixels satisfy the prompt request.
-      </p>
-
-      <p>
-        First, MiniSAM creates learned output tokens:
-      </p>
-
-      <pre><code>IoU token
-Mask token 1
-Mask token 2
-Mask token 3
-Prompt tokens</code></pre>
-
-      <p>
-        The attention operation is:
-      </p>
-
-      <div class="formula">
-        \[
-        \text{Attention}(Q,K,V)
-        =
-        \text{softmax}
-        \left(
-        \frac{QK^T}{\sqrt{d}}
-        \right)V
-        \]
-      </div>
-
-      <p>
-        The two-way transformer performs:
-      </p>
-
-      <div class="formula">
-        \[
-        T \leftarrow T + \text{Attn}(T,T,T)
-        \]
-        \[
-        T \leftarrow T + \text{Attn}(T,I,I)
-        \]
-        \[
-        I \leftarrow I + \text{Attn}(I,T,T)
-        \]
-      </div>
-
-      <p>
-        Here, <code>T</code> represents prompt/output tokens and <code>I</code>
-        represents image tokens.
-      </p>
-
-      <pre><code># Token self-attention
-tokens = tokens + self.token_self_attn(tokens, tokens, tokens)
-
-# Prompt tokens attend to image tokens
-tokens = tokens + self.token_to_image_attn(
-    tokens,
-    image_tokens,
-    image_tokens,
-)
-
-# Image tokens attend back to prompt tokens
-image_tokens = image_tokens + self.image_to_token_attn(
-    image_tokens,
-    tokens,
-    tokens,
-)</code></pre>
-
-      <h3>Hypernetwork Mask Head</h3>
-
-      <p>
-        Each mask token becomes a dynamic pixel classifier.
-      </p>
-
-      <div class="formula">
-        \[
-        h_j = \text{MLP}(t_j)
-        \]
-      </div>
-
-      <p>
-        The mask logit for pixel <code>i</code> is computed by a dot product:
-      </p>
-
-      <div class="formula">
-        \[
-        m_{j,i} = h_j^T f_i
-        \]
-      </div>
-
-      <p>
-        where <code>h_j</code> is the classifier from mask token <code>j</code> and
-        <code>f_i</code> is the upscaled pixel feature.
-      </p>
-
-      <pre><code>mask_token = mask_tokens_out[:, i, :]
-hyper_vector = self.output_hypernetworks_mlps[i](mask_token)
-
-# upscaled_embedding: [B, C, H, W]
-features = upscaled_embedding.view(B, C, H * W)
-
-mask_logits = torch.matmul(hyper_vector, features)
-mask_logits = mask_logits.view(B, 1, H, W)</code></pre>
-    </section>
-
-    <section class="card">
-      <h2>4. Losses</h2>
-
-      <p>
-        MiniSAM uses focal loss, dice loss, and IoU prediction loss. The corrected
-        version uses a SAM-style best-mask objective: among multiple predicted masks,
-        the best mask candidate is selected for the main segmentation loss.
-      </p>
-
-      <h3>Focal Loss</h3>
-
-      <p>
-        Focal loss handles foreground-background imbalance.
-      </p>
-
-      <div class="formula">
-        \[
-        \text{FL}(p,y)
-        =
-        -\alpha y(1-p)^\gamma \log(p)
-        -
-        (1-\alpha)(1-y)p^\gamma \log(1-p)
-        \]
-      </div>
-
-      <pre><code>prob = inputs.sigmoid()
-
-ce_loss = F.binary_cross_entropy_with_logits(
-    inputs,
-    targets,
-    reduction="none",
-)
-
-p_t = prob * targets + (1.0 - prob) * (1.0 - targets)
-loss = ce_loss * ((1.0 - p_t) ** gamma)</code></pre>
-
-      <h3>Dice Loss</h3>
-
-      <p>
-        Dice loss measures mask overlap.
-      </p>
-
-      <div class="formula">
-        \[
-        \text{DiceLoss}
-        =
-        1 -
-        \frac{2\sum_i p_i y_i + \epsilon}
-        {\sum_i p_i + \sum_i y_i + \epsilon}
-        \]
-      </div>
-
-      <pre><code>inputs = inputs.sigmoid()
-
-numerator = 2.0 * (inputs * targets).sum(dim=1)
-denominator = inputs.sum(dim=1) + targets.sum(dim=1)
-
-dice_loss = 1.0 - (numerator + eps) / (denominator + eps)</code></pre>
-
-      <h3>IoU Prediction Loss</h3>
-
-      <p>
-        The IoU head predicts the quality of each candidate mask.
-      </p>
-
-      <div class="formula">
-        \[
-        \text{IoU}
-        =
-        \frac{|M \cap Y|}
-        {|M \cup Y|}
-        \]
-      </div>
-
-      <div class="formula">
-        \[
-        \mathcal{L}_{iou}
-        =
-        \text{MSE}
-        (\hat{q}, \text{IoU}(M,Y))
-        \]
-      </div>
-
-      <h3>Final SAM-Style Loss</h3>
-
-      <p>
-        For each predicted mask <code>j</code>, MiniSAM computes:
-      </p>
-
-      <div class="formula">
-        \[
-        \mathcal{L}_{mask}^{(j)}
-        =
-        20 \cdot \mathcal{L}_{focal}^{(j)}
-        +
-        \mathcal{L}_{dice}^{(j)}
-        \]
-      </div>
-
-      <p>
-        Then the best mask is selected:
-      </p>
-
-      <div class="formula">
-        \[
-        j^*
-        =
-        \arg\min_j
-        \mathcal{L}_{mask}^{(j)}
-        \]
-      </div>
-
-      <p>
-        Final loss:
-      </p>
-
-      <div class="formula">
-        \[
-        \mathcal{L}
-        =
-        \mathcal{L}_{mask}^{(j^*)}
-        +
-        \mathcal{L}_{iou}
-        \]
-      </div>
-
-      <pre><code>best_idx = torch.argmin(all_mask_losses.detach(), dim=1)
-
-selected_mask_loss = all_mask_losses[
-    batch_indices,
-    best_idx,
-].mean()
-
-iou_loss = F.mse_loss(
-    pred_ious,
-    all_actual_ious.detach(),
-)
-
-total_loss = selected_mask_loss + iou_loss</code></pre>
-    </section>
-
-    <section class="card">
-      <h2>Old Loss vs Corrected SAM-Style Loss</h2>
-
-      <p>
-        During the first training attempt, the loss was averaged over all predicted
-        mask candidates. This created a problem: even if one candidate mask was very
-        good, the other weaker candidate masks still increased the validation loss.
-      </p>
-
-      <h3>First Attempt: Average Loss Over All Masks</h3>
-
-      <p>
-        The first version used:
-      </p>
-
-      <div class="formula">
-        \[
-        \mathcal{L}_{avg}
-        =
-        \frac{1}{M}
-        \sum_{j=1}^{M}
-        \mathcal{L}_{mask}^{(j)}
-        \]
-      </div>
-
-      <p>
-        where <code>M</code> is the number of predicted mask candidates. In MiniSAM,
-        <code>M = 3</code>.
-      </p>
-
-      <pre><code>total_focal = 0.0
-total_dice = 0.0
-
-for i in range(num_masks):
-    mask_i = pred_masks[:, i:i + 1]
-    total_focal += focal_loss(mask_i, gt_masks)
-    total_dice += dice_loss(mask_i, gt_masks)
-
-total_loss = total_focal / num_masks + total_dice / num_masks</code></pre>
-
-      <p>
-        This made training unstable because the model was punished for all mask
-        candidates, even when one candidate already matched the object well.
-      </p>
-
-      <h3>Observed Problem</h3>
-
-      <p>
-        In the first 120-epoch run, the training loss kept decreasing, but the
-        validation loss increased strongly after the early epochs. This indicated
-        overfitting and also showed that averaging over all mask candidates was not
-        ideal for a SAM-style decoder.
-      </p>
-
-      <div class="mini-diagram">
-        <div>Good mask candidate</div>
-        <span>+</span>
-        <div>Bad extra candidates</div>
-        <span>→</span>
-        <div>High averaged validation loss</div>
-      </div>
-
-      <h3>Corrected Approach: Best-Mask Training</h3>
-
-      <p>
-        The corrected version follows a SAM-style idea. For each image, MiniSAM first
-        computes the loss for every candidate mask. Then it chooses the best mask
-        candidate and backpropagates the segmentation loss through that selected mask.
-      </p>
-
-      <div class="formula">
-        \[
-        j^*
-        =
-        \arg\min_j
-        \mathcal{L}_{mask}^{(j)}
-        \]
-      </div>
-
-      <div class="formula">
-        \[
-        \mathcal{L}
-        =
-        \mathcal{L}_{mask}^{(j^*)}
-        +
-        \mathcal{L}_{iou}
-        \]
-      </div>
-
-      <pre><code>all_mask_losses = torch.stack(all_mask_losses, dim=1)
-
-best_idx = torch.argmin(
-    all_mask_losses.detach(),
-    dim=1,
-)
-
-selected_mask_loss = all_mask_losses[
-    batch_indices,
-    best_idx,
-].mean()
-
-iou_loss = F.mse_loss(
-    pred_ious,
-    all_actual_ious.detach(),
-)
-
-total_loss = selected_mask_loss + iou_loss</code></pre>
-
-      <h3>Why This Is Better</h3>
-
-      <p>
-        A prompt can be ambiguous, so multiple mask candidates are useful. The model
-        should not be forced to make every candidate mask identical. Instead, one
-        candidate should match the target well, and the IoU head should learn which
-        candidate is best.
-      </p>
+      <h3>What Do These Options Mean?</h3>
 
       <table class="metric-table">
         <tr>
-          <th>Training Version</th>
-          <th>Validation IoU</th>
-          <th>Validation Dice</th>
-          <th>Observation</th>
+          <th>Option</th>
+          <th>What It Does</th>
+          <th>Example</th>
         </tr>
         <tr>
-          <td>Old averaged multi-mask loss</td>
-          <td>0.8677</td>
-          <td>0.9285</td>
-          <td>Validation loss increased strongly.</td>
+          <td><code>data_root</code></td>
+          <td>Where your training images are</td>
+          <td><code>data/oxford_pet/processed</code></td>
         </tr>
         <tr>
-          <td>Corrected SAM-style best-mask loss</td>
-          <td>0.8949</td>
-          <td>0.9440</td>
-          <td>Better IoU and cleaner training behavior.</td>
+          <td><code>out_dir</code></td>
+          <td>Where to save the trained model</td>
+          <td><code>runs/my_model</code></td>
+        </tr>
+        <tr>
+          <td><code>device_id</code></td>
+          <td>Which GPU to use (0 = first GPU)</td>
+          <td><code>0</code></td>
+        </tr>
+        <tr>
+          <td><code>epochs</code></td>
+          <td>How many times to go through all data</td>
+          <td><code>50</code></td>
+        </tr>
+        <tr>
+          <td><code>batch_size</code></td>
+          <td>How many images at once (higher = faster but needs more memory)</td>
+          <td><code>32</code></td>
+        </tr>
+        <tr>
+          <td><code>workers</code></td>
+          <td>How many processes load data (CPU cores)</td>
+          <td><code>8</code></td>
+        </tr>
+        <tr>
+          <td><code>lr</code></td>
+          <td>Learning rate (how much model changes per step)</td>
+          <td><code>1e-4</code> (0.0001)</td>
         </tr>
       </table>
 
-      <p>
-        This was one of the most important lessons in the project: for a SAM-style
-        multi-mask decoder, the training objective should respect mask ambiguity.
-      </p>
+      <h3>Different Hardware? Adjust batch_size!</h3>
+
+      <p><strong>If you run out of memory:</strong> Reduce batch_size</p>
+      <pre><code>python train.py \
+  --data_root data/oxford_pet/processed \
+  --out_dir runs/my_run \
+  --batch_size 16</code></pre>
+
+      <p style="margin-top: 15px;"><strong>If you want faster training:</strong> Increase batch_size</p>
+      <pre><code>python train.py \
+  --data_root data/oxford_pet/processed \
+  --out_dir runs/my_run \
+  --batch_size 64</code></pre>
     </section>
 
     <section class="card">
-      <h2>Common Mistakes When Implementing SAM From Scratch</h2>
+      <h2>Step 4: Watch Training Progress</h2>
 
       <p>
-        Building a SAM-style model from scratch is not only about writing the modules.
-        Many implementation details matter. Below are the main mistakes that can make
-        training unstable or confusing.
+        During training, you'll see output like this:
       </p>
 
-      <table class="metric-table">
-        <tr>
-          <th>Mistake</th>
-          <th>Why It Is a Problem</th>
-          <th>Better Approach</th>
-        </tr>
+      <pre><code>Epoch 1/50
+Batch 10/100 | Loss: 2.34 | IoU: 0.45 | Dice: 0.52
+Batch 20/100 | Loss: 1.98 | IoU: 0.52 | Dice: 0.61
+Batch 30/100 | Loss: 1.65 | IoU: 0.58 | Dice: 0.68
+...
+Validation | IoU: 0.72 | Dice: 0.78</code></pre>
 
-        <tr>
-          <td>Training only image → mask</td>
-          <td>
-            SAM is not a normal segmentation model. It is a prompt-conditioned model.
-          </td>
-          <td>
-            Train using image + prompt → mask.
-          </td>
-        </tr>
-
-        <tr>
-          <td>Forgetting coordinate normalization</td>
-          <td>
-            Point and box prompts are pixel coordinates, but the prompt encoder needs
-            normalized coordinates.
-          </td>
-          <td>
-            Convert coordinates to the range <code>[0, 1]</code> before positional encoding.
-          </td>
-        </tr>
-
-        <tr>
-          <td>Averaging loss over all mask candidates</td>
-          <td>
-            A good candidate mask can be punished because other candidate masks are weaker.
-          </td>
-          <td>
-            Use a SAM-style best-mask loss and train the IoU head to rank masks.
-          </td>
-        </tr>
-
-        <tr>
-          <td>Choosing checkpoint only by validation loss</td>
-          <td>
-            Segmentation quality may improve even when soft loss increases slightly.
-          </td>
-          <td>
-            Track both validation loss and validation IoU. Save <code>best_iou.pt</code>.
-          </td>
-        </tr>
-
-        <tr>
-          <td>Not testing each module separately</td>
-          <td>
-            Shape bugs become hard to debug once the full model is connected.
-          </td>
-          <td>
-            Test image encoder, prompt encoder, mask decoder, full model, and losses
-            using random tensors first.
-          </td>
-        </tr>
-
-        <tr>
-          <td>Ignoring tensor shapes</td>
-          <td>
-            SAM-style models use both sequence tokens and dense feature maps, so shape
-            errors are common.
-          </td>
-          <td>
-            Print and verify every important tensor shape during development.
-          </td>
-        </tr>
-      </table>
-
-      <h3>Most Important Lesson</h3>
-
-      <p>
-        The most important correction in this project was changing the loss from
-        average multi-mask loss to best-mask training. Since one prompt can have
-        multiple valid interpretations, a SAM-style decoder should be allowed to
-        produce multiple candidate masks.
-      </p>
-
-      <div class="formula">
-        \[
-        \text{Bad idea: force all masks to be equally good}
-        \]
-      </div>
-
-      <div class="formula">
-        \[
-        \text{Better idea: choose the best mask and train the IoU head to rank candidates}
-        \]
-      </div>
-
-      <pre><code># Bad: average every candidate mask loss
-loss = mean(loss_mask_1, loss_mask_2, loss_mask_3)
-
-# Better: select the best candidate mask
-best_idx = argmin(mask_losses)
-loss = mask_losses[best_idx] + iou_prediction_loss</code></pre>
-    </section>
-
-    <section class="card">
-      <h2>Final Validation Result</h2>
+      <h3>What Do These Numbers Mean?</h3>
 
       <table class="metric-table">
         <tr>
           <th>Metric</th>
-          <th>Value</th>
+          <th>Meaning</th>
+          <th>Good Value</th>
         </tr>
         <tr>
-          <td>Validation IoU</td>
-          <td>0.8949</td>
+          <td><code>Loss</code></td>
+          <td>Error (lower is better)</td>
+          <td>Should decrease over time</td>
         </tr>
         <tr>
-          <td>Validation Dice</td>
-          <td>0.9440</td>
+          <td><code>IoU</code></td>
+          <td>Overlap between predicted mask and real mask (0-1, higher is better)</td>
+          <td>0.7+ is good</td>
         </tr>
         <tr>
-          <td>Precision</td>
-          <td>0.9447</td>
-        </tr>
-        <tr>
-          <td>Recall</td>
-          <td>0.9442</td>
-        </tr>
-        <tr>
-          <td>Pixel Accuracy</td>
-          <td>0.9028</td>
-        </tr>
-        <tr>
-          <td>Oracle Best-Mask IoU</td>
-          <td>0.8954</td>
+          <td><code>Dice</code></td>
+          <td>Another overlap measure (0-1, higher is better)</td>
+          <td>0.8+ is good</td>
         </tr>
       </table>
 
-      <p>
-        The selected-mask IoU is very close to the oracle best-mask IoU. This shows
-        that the IoU prediction head successfully learned to select the best mask
-        candidate.
+      <p style="margin-top: 20px; color: #666;">
+        💡 <strong>Tip:</strong> Look at validation metrics (at epoch end) not training metrics. 
+        Training metrics can be misleading because the model sees training data.
       </p>
+    </section>
+
+    <section class="card">
+      <h2>Step 5: Generate Prompts Explained</h2>
 
       <p>
-        <a href="index.html">Back to home</a>
+        MiniSAM needs to learn from instructions (clicks and boxes). Here's how the system generates them from mask data:
+      </p>
+
+      <h3>For Each Training Image:</h3>
+
+      <ol>
+        <li><strong>Load the image and its mask</strong>
+          <p style="color: #666;">
+            The mask shows which pixels are your object (white) and which are background (black).
+          </p>
+        </li>
+
+        <li><strong>Create a box prompt</strong>
+          <p style="color: #666;">
+            Find the smallest rectangle that contains all white pixels. That's your box!
+          </p>
+        </li>
+
+        <li><strong>Create a point prompt</strong>
+          <p style="color: #666;">
+            Pick a random white pixel. That's your click location!
+          </p>
+        </li>
+
+        <li><strong>Train the model</strong>
+          <p style="color: #666;">
+            Give the model the image + box + point, ask it to find the mask.
+          </p>
+        </li>
+      </ol>
+
+      <div class="mini-diagram">
+        <div>Image + Mask</div>
+        <span>→</span>
+        <div>Find Box</div>
+        <span>+</span>
+        <div>Pick Point</div>
+        <span>→</span>
+        <div>Train</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Step 6: Evaluate Your Model</h2>
+
+      <p>
+        After training, test how well your model performs:
+      </p>
+
+      <pre><code>python scripts/evaluate.py \
+  --data_root data/oxford_pet/processed \
+  --split val \
+  --checkpoint runs/my_minisam_run/best_iou.pt \
+  --device_id 0 \
+  --batch_size 32 \
+  --workers 8</code></pre>
+
+      <p style="margin-top: 15px; color: #666;">
+        This tests your model on validation data and shows final metrics.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Step 7: Visualize Results</h2>
+
+      <p>
+        Create pictures showing your model's predictions:
+      </p>
+
+      <pre><code>python scripts/visualize_predictions.py \
+  --data_root data/oxford_pet/processed \
+  --split val \
+  --checkpoint runs/my_minisam_run/best_iou.pt \
+  --out_dir runs/my_minisam_run/visuals \
+  --device_id 0 \
+  --num_samples 32</code></pre>
+
+      <p style="margin-top: 15px; color: #666;">
+        This creates 32 sample images showing input, ground truth mask, predicted mask, and overlap.
+        Check the output folder to see how well your model did!
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Common Issues and Fixes</h2>
+
+      <table class="metric-table">
+        <tr>
+          <th>Problem</th>
+          <th>Cause</th>
+          <th>Solution</th>
+        </tr>
+
+        <tr>
+          <td>GPU out of memory</td>
+          <td>Batch size too large</td>
+          <td>Reduce <code>--batch_size 16</code> or <code>--batch_size 8</code></td>
+        </tr>
+
+        <tr>
+          <td>Training very slow</td>
+          <td>Batch size too small or CPU used</td>
+          <td>Increase batch size or use GPU</td>
+        </tr>
+
+        <tr>
+          <td>Loss stays high</td>
+          <td>Model not learning well</td>
+          <td>Try different learning rate: <code>--lr 5e-5</code></td>
+        </tr>
+
+        <tr>
+          <td>Can't download data</td>
+          <td>Internet or permission issue</td>
+          <td>Download manually from Oxford website</td>
+        </tr>
+
+        <tr>
+          <td>ModuleNotFoundError</td>
+          <td>Dependencies not installed</td>
+          <td>Run <code>pip install -r requirements.txt</code> again</td>
+        </tr>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Training Tips</h2>
+
+      <ul>
+        <li>✅ <strong>Test first:</strong> Run the test scripts before training</li>
+        <li>✅ <strong>Start small:</strong> Try with 5 epochs first, then 50</li>
+        <li>✅ <strong>Watch the metrics:</strong> Stop if validation loss increases for many epochs</li>
+        <li>✅ <strong>Save checkpoints:</strong> The model saves best version automatically</li>
+        <li>✅ <strong>Different data:</strong> Try your own images after training on Oxford Pet</li>
+        <li>✅ <strong>Experiment:</strong> Try different batch sizes and learning rates</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Next: Train Your Own Data!</h2>
+
+      <p>
+        Once you've trained on Oxford Pet, try with your own images:
+      </p>
+
+      <ol>
+        <li>Collect images of your object</li>
+        <li>Create masks (white = object, black = background)</li>
+        <li>Organize in the same format as Oxford Pet</li>
+        <li>Run training with your data</li>
+        <li>See how well it works!</li>
+      </ol>
+
+      <p style="margin-top: 30px; text-align: center;">
+        <a href="index.html">← Back to Home</a> | 
+        <a href="results.html">See Results →</a>
       </p>
     </section>
 
@@ -820,15 +388,11 @@ loss = mask_losses[best_idx] + iou_prediction_loss</code></pre>
   <footer class="site-footer">
     <div class="footer-inner">
       <p>
-        <strong>MiniSAM From Scratch</strong> — an educational SAM-style promptable segmentation project.
+        <strong>MiniSAM From Scratch</strong> — Simple training guide for SAM-style models.
       </p>
-
       <p>
-        Created by <strong>Lokendra Kumar</strong> |
-        <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub Repository</a> |
-        <a href="index.html">Home</a> |
-        <a href="architecture.html">Architecture</a> |
-        <a href="results.html">Results</a>
+        Created by <strong>Lokendra Kumar</strong> | 
+        <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub</a>
       </p>
     </div>
   </footer>
