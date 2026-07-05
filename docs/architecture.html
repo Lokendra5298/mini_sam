@@ -3,25 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>MiniSAM Architecture</title>
+  <title>How MiniSAM Works</title>
   <link rel="stylesheet" href="style.css">
-
-  <script>
-    window.MathJax = {
-      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
-      svg: { fontCache: 'global' }
-    };
-  </script>
-  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 
 <body>
   <nav class="navbar">
     <div class="navbar-inner">
       <a href="index.html">Home</a>
-      <a class="active" href="architecture.html">Architecture</a>
-      <a href="training.html">Training Details</a>
+      <a class="active" href="architecture.html">How It Works</a>
+      <a href="training.html">Training Guide</a>
       <a href="results.html">Results</a>
       <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub</a>
     </div>
@@ -30,445 +21,262 @@
   <main class="page">
 
     <section class="card">
-      <h1>MiniSAM Architecture</h1>
+      <h1>How MiniSAM Works</h1>
 
       <p>
-        MiniSAM is a small SAM-style promptable segmentation model built from scratch.
-        It follows the same high-level idea as Segment Anything: encode the image,
-        encode the prompt, and use a mask decoder to predict the requested object mask.
+        MiniSAM has a simple flow: it takes your image and your instruction (click or box), 
+        and finds the object you're asking for. Let's break it down step by step.
       </p>
 
       <div class="pipeline">
-        <div>Input Image</div>
+        <div>Image</div>
         <span>→</span>
         <div>Image Encoder</div>
         <span>→</span>
-        <div>Image Embedding</div>
-        <span>+</span>
-        <div>Prompt Embedding</div>
+        <div>Combine with Prompt</div>
         <span>→</span>
         <div>Mask Decoder</div>
         <span>→</span>
-        <div>Final Mask</div>
+        <div>Object Mask</div>
       </div>
     </section>
 
     <section class="card">
-      <h2>1. Image Encoder</h2>
+      <h2>Part 1: Image Encoder - Understanding the Image</h2>
 
       <p>
-        The image encoder converts the input image into a dense feature map.
-        In MiniSAM, the input image is resized to 256 × 256 and divided into
-        16 × 16 patches.
+        <strong>Job:</strong> Take the image and convert it into a special format that the AI understands.
       </p>
-
-      <pre><code>Input image:       [B, 3, 256, 256]
-Patch embedding:   [B, 256, 16, 16]
-Flattened tokens:  [B, 256, C]
-Transformer blocks
-Output embedding:  [B, 256, 16, 16]</code></pre>
 
       <p>
-        The image encoder uses ViT-style self-attention. This allows image patches
-        to exchange information and learn object shape, texture, and boundary cues.
+        <strong>Think of it like:</strong> A scanner that looks at a photograph and creates a detailed description 
+        of everything it sees - shapes, colors, textures, edges, etc.
       </p>
+
+      <h3>What Happens Inside?</h3>
+      <ol>
+        <li><strong>Chop the image into pieces</strong> - Split the 256×256 image into 16×16 small patches</li>
+        <li><strong>Understand each piece</strong> - Use AI to understand what each patch contains</li>
+        <li><strong>Let patches communicate</strong> - Let each patch share information with nearby patches</li>
+        <li><strong>Create visual features</strong> - Combine everything into a rich understanding</li>
+      </ol>
 
       <div class="mini-diagram">
         <div>Image</div>
         <span>→</span>
-        <div>Patch Embedding</div>
+        <div>Split into Patches</div>
         <span>→</span>
-        <div>Transformer Blocks</div>
+        <div>Process Each Patch</div>
         <span>→</span>
-        <div>Image Feature Map</div>
+        <div>Combine Info</div>
+        <span>→</span>
+        <div>Visual Features</div>
       </div>
-    </section>
 
-    <section class="card">
-      <h2>2. Prompt Encoder</h2>
-
-      <p>
-        The prompt encoder converts user prompts into embeddings. MiniSAM supports
-        point prompts, box prompts, and optional mask prompts.
-      </p>
-
-      <h3>Point Prompt</h3>
-      <pre><code>Point coordinate: [x, y]
-Point label:      positive or negative
-Output:           sparse prompt embedding</code></pre>
-
-      <h3>Box Prompt</h3>
-      <pre><code>Box: [x1, y1, x2, y2]
-Top-left corner embedding
-Bottom-right corner embedding
-Output: sparse prompt embedding</code></pre>
-
-      <h3>Mask Prompt</h3>
-      <pre><code>Previous mask: [B, 1, 256, 256]
-Small CNN downsampling
-Output: dense prompt embedding [B, 256, 16, 16]</code></pre>
-
-      <p>
-        For Oxford-IIIT Pet training, MiniSAM generates a box prompt and one
-        positive point prompt from the ground-truth mask.
+      <p style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #1d4ed8; border-radius: 4px;">
+        <strong>Result:</strong> A feature map that the AI can easily work with (16×16 grid where each position 
+        understands what's around it)
       </p>
     </section>
 
     <section class="card">
-      <h2>3. Mask Decoder</h2>
+      <h2>Part 2: Prompt Encoder - Understanding Your Instruction</h2>
 
       <p>
-        The mask decoder is the most important part of MiniSAM. It decides which
-        pixels satisfy the prompt. It receives image embeddings, prompt embeddings,
-        learned mask tokens, and an IoU token.
+        <strong>Job:</strong> Convert your click or box into something the AI understands.
       </p>
 
-      <pre><code>Inputs:
-Image embedding:          [B, 256, 16, 16]
-Sparse prompt embedding:  [B, N, 256]
-Dense prompt embedding:   [B, 256, 16, 16]
-Mask tokens:              learned output tokens
-IoU token:                learned quality token</code></pre>
+      <p>
+        <strong>Think of it like:</strong> A translator that converts your gesture into the AI's language.
+      </p>
+
+      <h3>Point Prompt (You click on an object)</h3>
+      <ul>
+        <li>You click at coordinates (x, y)</li>
+        <li>The encoder converts this into a special "click" embedding</li>
+        <li>The embedding tells the AI: "Look at this location!"</li>
+      </ul>
+
+      <h3>Box Prompt (You draw a box)</h3>
+      <ul>
+        <li>You provide 4 numbers: top-left corner and bottom-right corner</li>
+        <li>The encoder converts both corners into special embeddings</li>
+        <li>The embeddings tell the AI: "Find everything inside this rectangle!"</li>
+      </ul>
+
+      <p style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #1d4ed8; border-radius: 4px;">
+        <strong>Result:</strong> Instruction embeddings that represent what you want
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Part 3: Mask Decoder - Finding the Object</h2>
+
+      <p>
+        <strong>Job:</strong> The "smart brain" that combines the image understanding with your instruction 
+        to figure out which pixels belong to your object.
+      </p>
+
+      <p>
+        <strong>Think of it like:</strong> A detective using clues (image) and a description (instruction) to 
+        find exactly what you're looking for.
+      </p>
+
+      <h3>Two-Way Communication (The Key Magic ✨)</h3>
+
+      <p>
+        The decoder uses a clever trick: it lets the image and your instruction "talk to each other".
+      </p>
+
+      <ol>
+        <li><strong>Image tokens listen to your instruction</strong>
+          <p style="color: #666;">
+            Each pixel region asks: "Does this belong to what the user is asking for?"
+          </p>
+        </li>
+        <li><strong>Your instruction listens to the image</strong>
+          <p style="color: #666;">
+            Your instruction asks: "What parts of the image match what I'm looking for?"
+          </p>
+        </li>
+        <li><strong>They keep talking until they agree</strong>
+          <p style="color: #666;">
+            This back-and-forth happens multiple times until they reach an agreement.
+          </p>
+        </li>
+      </ol>
 
       <div class="mini-diagram">
-        <div>Image Tokens</div>
+        <div>Image Understanding</div>
         <span>↔</span>
-        <div>Prompt Tokens</div>
+        <div>Your Instruction</div>
         <span>→</span>
-        <div>Mask Tokens</div>
+        <div>Agreement: This is it!</div>
         <span>→</span>
-        <div>Pixel Classifier</div>
-        <span>→</span>
-        <div>Mask</div>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>4. Two-Way Attention</h2>
-
-      <p>
-        MiniSAM uses a two-way transformer inside the mask decoder. The key idea is
-        that prompt tokens attend to image tokens, and image tokens also attend back
-        to prompt tokens.
-      </p>
-
-      <pre><code>Step 1: Prompt tokens use self-attention
-Step 2: Prompt tokens attend to image tokens
-Step 3: Prompt tokens are updated by an MLP
-Step 4: Image tokens attend back to prompt tokens
-Step 5: Updated tokens are used for mask prediction</code></pre>
-
-      <p>
-        This is how the model connects the request from the prompt with the visual
-        information in the image.
-      </p>
-    </section>
-
-    <section class="card">
-      <h2>5. Hypernetwork Mask Head</h2>
-
-      <p>
-        After two-way attention, each mask token is converted into a small dynamic
-        classifier using an MLP. This classifier scores every pixel feature.
-      </p>
-
-      <pre><code>Mask token
-   ↓
-MLP hypernetwork
-   ↓
-Dynamic classifier vector
-   ↓
-Dot product with each pixel feature
-   ↓
-Mask logits</code></pre>
-
-      <p>
-        A pixel receives a high score when its feature matches the prompt-conditioned
-        mask token. After thresholding, high-score pixels become foreground.
-      </p>
-    </section>
-
-    <section class="card">
-      <h2>6. Loss Function</h2>
-
-      <p>
-        MiniSAM uses a SAM-style best-mask training objective. Since the decoder
-        predicts multiple candidate masks, we select the best candidate per sample
-        and train that mask strongly.
-      </p>
-
-      <pre><code>Total loss = selected mask loss + IoU prediction loss
-
-selected mask loss =
-    20 × focal loss
-    + 1 × dice loss
-
-IoU prediction loss =
-    MSE(predicted IoU, actual IoU)</code></pre>
-
-      <p>
-        The final model uses the corrected SAM-style loss. This fixed the earlier
-        validation-loss explosion caused by averaging loss across all mask candidates.
-      </p>
-    </section>
-
-    <section class="card">
-      <h2>Tensor Shape Flow</h2>
-
-      <p>
-        Tensor shapes are one of the most important parts of understanding a SAM-style
-        model. The table below shows how the image, prompts, tokens, and masks move
-        through MiniSAM.
-      </p>
-
-      <table class="metric-table">
-        <tr>
-          <th>Stage</th>
-          <th>Tensor Shape</th>
-          <th>Meaning</th>
-        </tr>
-        <tr>
-          <td>Input image</td>
-          <td><code>[B, 3, 256, 256]</code></td>
-          <td>Batch of RGB images.</td>
-        </tr>
-        <tr>
-          <td>Patch embedding</td>
-          <td><code>[B, 256, 16, 16]</code></td>
-          <td>Image converted into a low-resolution dense feature map.</td>
-        </tr>
-        <tr>
-          <td>Image tokens</td>
-          <td><code>[B, 256, 256]</code></td>
-          <td>There are 256 patch tokens, each with 256 channels.</td>
-        </tr>
-        <tr>
-          <td>Point prompt</td>
-          <td><code>[B, 1, 2]</code></td>
-          <td>One point coordinate: <code>[x, y]</code>.</td>
-        </tr>
-        <tr>
-          <td>Point label</td>
-          <td><code>[B, 1]</code></td>
-          <td>Positive point label. In this project, label <code>1</code> means foreground.</td>
-        </tr>
-        <tr>
-          <td>Box prompt</td>
-          <td><code>[B, 4]</code></td>
-          <td>Bounding box: <code>[x1, y1, x2, y2]</code>.</td>
-        </tr>
-        <tr>
-          <td>Sparse prompt embedding</td>
-          <td><code>[B, 3, 256]</code></td>
-          <td>One point token plus two box-corner tokens.</td>
-        </tr>
-        <tr>
-          <td>Dense prompt embedding</td>
-          <td><code>[B, 256, 16, 16]</code></td>
-          <td>Mask/no-mask embedding aligned with image embedding resolution.</td>
-        </tr>
-        <tr>
-          <td>Mask decoder output</td>
-          <td><code>[B, 3, 256, 256]</code></td>
-          <td>Three candidate masks predicted for each image.</td>
-        </tr>
-        <tr>
-          <td>IoU prediction output</td>
-          <td><code>[B, 3]</code></td>
-          <td>Predicted quality score for each candidate mask.</td>
-        </tr>
-      </table>
-
-      <p>
-        In short, MiniSAM first compresses the image into a <code>16 × 16</code>
-        feature grid, combines it with prompt embeddings, and then upsamples the
-        decoder output back to a <code>256 × 256</code> mask.
-      </p>
-    </section>
-
-    <section class="card">
-      <h2>Why Does MiniSAM Predict Multiple Masks?</h2>
-
-      <p>
-        A prompt can be ambiguous. For example, if a user clicks on an animal's body,
-        the correct mask could mean the full animal, only the head, only the torso,
-        or the animal plus some boundary region. To handle this ambiguity, MiniSAM
-        predicts multiple candidate masks instead of only one.
-      </p>
-
-      <div class="mini-diagram">
-        <div>One prompt</div>
-        <span>→</span>
-        <div>Mask candidate 1</div>
-        <div>Mask candidate 2</div>
-        <div>Mask candidate 3</div>
-        <span>→</span>
-        <div>IoU head selects best mask</div>
+        <div>Object Mask</div>
       </div>
 
+      <h3>Multiple Guesses (The AI is Smart)</h3>
+
       <p>
-        In this project, the mask decoder predicts three candidate masks:
+        Since your instruction might be ambiguous (should I get just the head or the whole animal?), 
+        MiniSAM creates multiple candidate masks and ranks them:
       </p>
 
-      <pre><code>Predicted masks: [B, 3, 256, 256]
-Predicted IoUs:  [B, 3]</code></pre>
+      <ul>
+        <li>Create 3 different possible masks</li>
+        <li>Score each mask (1, 2, 3 = best to worst)</li>
+        <li>Pick the one with the best score</li>
+      </ul>
 
-      <p>
-        The IoU prediction head gives a quality score for each mask. During inference,
-        MiniSAM selects the mask with the highest predicted IoU score.
-      </p>
-
-      <pre><code>selected_idx = torch.argmax(pred_ious, dim=1)
-
-selected_mask = pred_masks[
-    torch.arange(pred_masks.shape[0]),
-    selected_idx,
-]</code></pre>
-
-      <p>
-        This worked well in the final experiment. The realistic selected-mask IoU was
-        very close to the oracle best-mask IoU:
-      </p>
-
-      <table class="metric-table">
-        <tr>
-          <th>Selection Method</th>
-          <th>Validation IoU</th>
-        </tr>
-        <tr>
-          <td>Selected by predicted IoU head</td>
-          <td>0.8949</td>
-        </tr>
-        <tr>
-          <td>Oracle best mask among 3 candidates</td>
-          <td>0.8954</td>
-        </tr>
-      </table>
-
-      <p>
-        The small gap between 0.8949 and 0.8954 shows that the IoU head learned to
-        choose almost the same mask as the oracle best candidate.
+      <p style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #1d4ed8; border-radius: 4px;">
+        <strong>Result:</strong> One perfect mask showing exactly which pixels are your object
       </p>
     </section>
 
     <section class="card">
-      <h2>MiniSAM vs Original SAM</h2>
+      <h2>Part 4: IoU Predictor - Quality Score</h2>
 
       <p>
-        MiniSAM is not a full reproduction of the original Segment Anything Model.
-        Instead, it is a small educational implementation that keeps the main architectural
-        ideas of SAM while making the model small enough to train from scratch on a
-        small dataset.
+        <strong>Job:</strong> Predict how good each mask is (quality scoring).
       </p>
-
-      <table class="metric-table">
-        <tr>
-          <th>Component</th>
-          <th>Original SAM</th>
-          <th>MiniSAM</th>
-        </tr>
-        <tr>
-          <td>Goal</td>
-          <td>General-purpose promptable segmentation</td>
-          <td>Educational promptable segmentation from scratch</td>
-        </tr>
-        <tr>
-          <td>Image size</td>
-          <td>Large image resolution, commonly 1024 × 1024</td>
-          <td>256 × 256</td>
-        </tr>
-        <tr>
-          <td>Image encoder</td>
-          <td>Large ViT encoder such as ViT-B, ViT-L, or ViT-H</td>
-          <td>Small ViT-style encoder</td>
-        </tr>
-        <tr>
-          <td>Dataset scale</td>
-          <td>Very large-scale segmentation data</td>
-          <td>Oxford-IIIT Pet segmentation dataset</td>
-        </tr>
-        <tr>
-          <td>Prompt types</td>
-          <td>Point, box, and mask prompts</td>
-          <td>Point, box, and optional mask prompts</td>
-        </tr>
-        <tr>
-          <td>Mask decoder</td>
-          <td>Two-way transformer decoder</td>
-          <td>Small two-way transformer decoder</td>
-        </tr>
-        <tr>
-          <td>Mask outputs</td>
-          <td>Multiple candidate masks plus IoU scores</td>
-          <td>Three candidate masks plus IoU scores</td>
-        </tr>
-        <tr>
-          <td>Losses</td>
-          <td>Mask loss and IoU prediction loss</td>
-          <td>Focal loss, dice loss, and IoU prediction loss</td>
-        </tr>
-        <tr>
-          <td>Purpose</td>
-          <td>Strong zero-shot segmentation system</td>
-          <td>Learning how SAM works internally</td>
-        </tr>
-      </table>
 
       <p>
-        The important point is that MiniSAM keeps the key mechanism:
+        <strong>Think of it like:</strong> A quality inspector that grades each mask and picks the best one.
       </p>
 
-      <div class="formula">
-        \[
-        \text{Image Embedding}
-        +
-        \text{Prompt Embedding}
-        \rightarrow
-        \text{Prompt-Conditioned Mask}
-        \]
+      <p>
+        IoU (Intersection over Union) is a simple way to measure: "How much of the mask matches the real object?"
+      </p>
+
+      <p style="margin-top: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #1d4ed8; border-radius: 4px;">
+        <strong>Result:</strong> A score (0-1) for each mask. Higher = better. The mask with the highest score wins!
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Complete Flow: Putting It All Together</h2>
+
+      <h3>Example: Finding a Cat in a Photo</h3>
+
+      <p><strong>Step 1:</strong> Image Encoder reads the photo</p>
+      <p style="color: #666; margin-top: 0;">
+        → "I see an animal-like shape, fuzzy texture, some background trees..."
+      </p>
+
+      <p><strong>Step 2:</strong> You click on the cat's head</p>
+      <p style="color: #666; margin-top: 0;">
+        → Prompt encoder: "User wants something at position (120, 85)"
+      </p>
+
+      <p><strong>Step 3:</strong> Mask Decoder connects them</p>
+      <p style="color: #666; margin-top: 0;">
+        → Image: "You clicked on something furry..."<br>
+        → Instruction: "Show me the entire cat"<br>
+        → Together: "Found it! These pixels form the cat"
+      </p>
+
+      <p><strong>Step 4:</strong> Create 3 possible answers</p>
+      <p style="color: #666; margin-top: 0;">
+        → Option 1: Just the head (confidence: 65%)<br>
+        → Option 2: Head + neck (confidence: 92%)<br>
+        → Option 3: Entire body (confidence: 71%)
+      </p>
+
+      <p><strong>Step 5:</strong> Pick the best one</p>
+      <p style="color: #666; margin-top: 0;">
+        → Winner: Option 2 (92% confidence)
+      </p>
+
+      <p><strong>You get:</strong> A perfect silhouette of the cat! ✅</p>
+    </section>
+
+    <section class="card">
+      <h2>Why Multiple Masks?</h2>
+
+      <p>
+        A click can mean different things! If I click on a cat:
+      </p>
+
+      <div class="grid">
+        <div class="box">
+          <h3>Interpretation 1: The Fur</h3>
+          <p>Just the cat's fuzzy fur</p>
+        </div>
+        <div class="box">
+          <h3>Interpretation 2: The Head</h3>
+          <p>The cat's head region</p>
+        </div>
+        <div class="box">
+          <h3>Interpretation 3: The Whole Body</h3>
+          <p>The entire cat from head to tail</p>
+        </div>
+        <div class="box">
+          <h3>AI's Smart Choice</h3>
+          <p>Predict which is most likely correct</p>
+        </div>
       </div>
 
-      <p>
-        This makes MiniSAM useful for understanding how a promptable segmentation
-        model works, even though it is much smaller than the original SAM.
+      <p style="margin-top: 20px;">
+        By creating multiple options and scoring them, MiniSAM handles ambiguity gracefully!
       </p>
     </section>
 
     <section class="card">
-      <h2>7. Final Architecture Summary</h2>
+      <h2>Key Takeaways</h2>
 
-      <table class="metric-table">
-        <tr>
-          <th>Component</th>
-          <th>Role</th>
-        </tr>
-        <tr>
-          <td>Image Encoder</td>
-          <td>Converts image into visual feature map using ViT-style self-attention.</td>
-        </tr>
-        <tr>
-          <td>Prompt Encoder</td>
-          <td>Converts points, boxes, and masks into prompt embeddings.</td>
-        </tr>
-        <tr>
-          <td>Two-Way Transformer</td>
-          <td>Allows prompt tokens and image tokens to exchange information.</td>
-        </tr>
-        <tr>
-          <td>Mask Tokens</td>
-          <td>Represent candidate segmentation masks.</td>
-        </tr>
-        <tr>
-          <td>Hypernetwork Head</td>
-          <td>Turns each mask token into a dynamic pixel classifier.</td>
-        </tr>
-        <tr>
-          <td>IoU Head</td>
-          <td>Predicts mask quality and helps select the best mask.</td>
-        </tr>
-      </table>
+      <ul>
+        <li>🖼️ <strong>Image Encoder:</strong> Understands what's in the image</li>
+        <li>👆 <strong>Prompt Encoder:</strong> Understands what you're asking for</li>
+        <li>🧠 <strong>Mask Decoder:</strong> Connects them using smart "conversation"</li>
+        <li>⭐ <strong>IoU Predictor:</strong> Picks the best answer</li>
+        <li>🎯 <strong>Multiple Masks:</strong> Handles ambiguity by creating options</li>
+      </ul>
 
-      <p><a href="index.html">Back to home</a></p>
+      <p style="margin-top: 30px; text-align: center;">
+        <a href="index.html">← Back to Home</a> | 
+        <a href="training.html">Read Training Guide →</a>
+      </p>
     </section>
 
   </main>
@@ -476,15 +284,11 @@ selected_mask = pred_masks[
   <footer class="site-footer">
     <div class="footer-inner">
       <p>
-        <strong>MiniSAM From Scratch</strong> — an educational SAM-style segmentation project.
+        <strong>MiniSAM From Scratch</strong> — Easy SAM-style segmentation explained.
       </p>
-
       <p>
-        Created by <strong>Lokendra Kumar</strong> |
-        <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub Repository</a> |
-        <a href="index.html">Home</a> |
-        <a href="training.html">Training Details</a> |
-        <a href="results.html">Results</a>
+        Created by <strong>Lokendra Kumar</strong> | 
+        <a href="https://github.com/Lokendra5298/mini_sam" target="_blank" rel="noopener noreferrer">GitHub</a>
       </p>
     </div>
   </footer>
