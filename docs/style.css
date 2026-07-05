@@ -199,46 +199,8 @@ h3 {
 
 .pipeline span,
 .mini-diagram span {
-  font-size: 24px;
-  font-weight: 800;
   color: #1d4ed8;
-}
-
-/* Code blocks */
-
-pre {
-  background: #111827;
-  color: #e5e7eb;
-  padding: 20px;
-  border-radius: 16px;
-  overflow-x: auto;
-  font-size: 15px;
-}
-
-code {
-  font-family: Consolas, Monaco, monospace;
-}
-
-/* Math formulas */
-
-.formula {
-  background: #f8fafc;
-  border-left: 5px solid #1d4ed8;
-  padding: 18px 22px;
-  margin: 22px 0;
-  border-radius: 12px;
-  overflow-x: auto;
-}
-
-/* Lists */
-
-ul {
-  margin-top: 10px;
-  margin-bottom: 20px;
-}
-
-li {
-  margin-bottom: 8px;
+  font-weight: 700;
 }
 
 /* Tables */
@@ -246,118 +208,101 @@ li {
 .metric-table {
   width: 100%;
   border-collapse: collapse;
-  margin: 22px 0;
+  margin: 20px 0;
+  background: white;
+  border-radius: 8px;
   overflow: hidden;
-  border-radius: 14px;
-  box-shadow: 0 0 0 1px #e5e7eb;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
 .metric-table th {
   background: #1d4ed8;
   color: white;
+  padding: 14px;
   text-align: left;
-  padding: 14px 16px;
+  font-weight: 700;
+  border-bottom: 2px solid #1e40af;
 }
 
 .metric-table td {
-  padding: 14px 16px;
-  border-top: 1px solid #e5e7eb;
-  vertical-align: top;
+  padding: 14px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.metric-table tr:nth-child(even) td {
+.metric-table tr:hover {
   background: #f8fafc;
+}
+
+.metric-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Pre and Code */
+
+pre {
+  background: #1f2937;
+  color: #e5e7eb;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+code {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+}
+
+.card code {
+  background: #f3f4f6;
+  color: #1f2937;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 /* Footer */
 
 .site-footer {
-  max-width: 1100px;
-  margin: 0 auto 32px;
-  padding: 0 24px;
+  background: #1f2937;
+  color: white;
+  margin-top: 60px;
+  padding: 40px 24px;
 }
 
 .footer-inner {
-  background: #111827;
-  color: #e5e7eb;
-  border-radius: 24px;
-  padding: 24px 28px;
+  max-width: 1100px;
+  margin: 0 auto;
   text-align: center;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
 }
 
-.footer-inner p {
-  margin: 8px 0;
+.site-footer p {
+  margin: 10px 0;
 }
 
-.footer-inner a {
-  color: #93c5fd;
-  text-decoration: none;
-  font-weight: 700;
-}
-
-.footer-inner a:hover {
+.site-footer a {
   color: #bfdbfe;
-  text-decoration: underline;
 }
 
-/* Mobile */
+.site-footer a:hover {
+  color: white;
+}
 
-@media (max-width: 700px) {
-  .page {
-    padding: 32px 18px;
-  }
+/* Responsive */
 
-  .navbar {
-    padding: 0 18px;
-  }
-
-  .navbar-inner {
-    border-radius: 22px;
-  }
-
-  .hero {
-    padding: 32px;
-  }
-
+@media (max-width: 768px) {
   h1 {
-    font-size: 34px;
-  }
-
-  .subtitle {
-    font-size: 17px;
-  }
-
-  .card {
-    padding: 26px;
+    font-size: 32px;
   }
 
   .grid {
     grid-template-columns: 1fr;
   }
 
-  .pipeline,
-  .mini-diagram {
-    align-items: stretch;
+  .hero {
+    padding: 32px;
   }
 
-  .pipeline div,
-  .mini-diagram div {
-    width: 100%;
-  }
-
-  .pipeline span,
-  .mini-diagram span {
-    width: 100%;
-    text-align: center;
-  }
-
-  pre {
-    font-size: 14px;
-  }
-
-  .metric-table {
-    display: block;
-    overflow-x: auto;
+  .card {
+    padding: 20px;
   }
 }
